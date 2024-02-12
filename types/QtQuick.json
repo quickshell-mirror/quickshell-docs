@@ -1,0 +1,57 @@
+{
+	"typemap": [
+		{
+			"name": "void",
+			"cname": "void",
+			"module": null
+		},
+		{
+			"name": "variant",
+			"cname": "QVariant",
+			"module": null
+		},
+		{
+			"name": "bool",
+			"cname": "bool",
+			"module": null
+		},
+		{
+			"name": "int",
+			"cname": "qint32",
+			"module": null
+		},
+		{
+			"name": "real",
+			"cname": "qreal",
+			"module": null
+		},
+		{
+			"name": "string",
+			"cname": "QString",
+			"module": null
+		},
+		{
+			"name": "color",
+			"cname": "QColor",
+			"module": null
+		},
+		{
+			"name": "QtObject",
+			"cname": "QObject",
+			"module": "qml.QtQml"
+		},
+		{
+			"name": "Component",
+			"cname": "QQmlComponent",
+			"module": "qml.QtQml"
+		},
+		{
+			"name": "Item",
+			"cname": "QQuickItem",
+			"module": "qml.QtQuick"
+		}
+	],
+	"classes": [],
+	"gadgets": [],
+	"enums": []
+}

@@ -1,0 +1,36 @@
+baseURL = "https://example.org/"
+languageCode = "en-us"
+title = "QuickShell"
+theme = "hextra"
+
+[params.theme]
+default = "dark"
+displayToggle = true
+
+[params.search]
+enable = true
+type = "flexsearch"
+flexsearch.index = "content"
+
+[markup] # required by theme to render properly
+goldmark.renderer.unsafe = true
+highlight.noClasses = false
+
+[[menu.sidebar]]
+name = "QtQuick Type Reference ↗"
+url = "https://doc.qt.io/qt-6/qtquick-qmlmodule.html"
+
+[[menu.main]]
+name = "Docs"
+pageRef = "/docs"
+weight = 1
+
+[[menu.main]]
+name = "Types"
+pageRef = "/docs/types"
+weight = 2
+
+[[menu.main]]
+name = "Search"
+weight = 3
+params.type = "search"

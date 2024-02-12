@@ -1,0 +1,204 @@
+{{ $modulename := .Get "module" }}
+{{ $typename := .Get "type" }}
+{{ $type := index .Site.Data.modules $modulename $typename }}
+
+{{- define "partials/qmltypeflag.html" -}}
+	{{- if eq . "default" -}}
+		<span title="Components written directly into an object are collected in its default property.">{{ . }}</span>
+	{{- else if eq . "singleton" -}}
+		<span title="Only one instance of this type exists, accessible by its name.">{{ . }}</span>
+	{{- else if eq . "uncreatable" -}}
+		<span title="This type cannot be manually created.">{{ . }}</span>
+	{{- else if eq . "readonly" -}}
+		<span title="This property cannot be assigned to, only read from.">{{ . }}</span>
+	{{- else if eq . "writeonly" -}}
+		<span title="This property cannot be read, only assigned.">{{ . }}</span>
+	{{- else -}}
+		<span>{{ . }}</span>
+	{{- end -}}
+{{- end -}}
+
+{{- define "partials/qmltypeflags.html" -}}
+		{{- $first := true -}}
+		[
+		{{- range $flag := . }}
+			{{- if not $first -}}, {{ end -}}
+			{{- $first = false -}}
+			{{ partial "qmltypeflag.html" $flag }}
+		{{- end -}}
+		]
+{{- end -}}
+
+<h1>
+	{{ $typename -}}
+	<span class="typegray" style="font-weight: normal">
+		{{- if eq $type.type "class" -}}
+			: {{ partial "qmltype.html" $type.super }}
+			{{ if $type.flags -}}
+				<span class="qmlprops">{{ partial "qmltypeflags.html" $type.flags }}</span>
+			{{- end -}}
+		{{- else if eq $type.type "enum" -}}
+			<span class="qmlprops">[enum]</span>
+		{{- end -}}
+	</span>
+</h1>
+
+<code>
+	<i>import {{ $modulename }}</i>
+</code>
+
+{{- if $type.description -}}
+	<br><br>
+	{{- $type.description | $.Page.RenderString (dict "display" "inline") }}
+	{{ if $type.details -}} <a href="#details">More</a> {{- end -}}
+{{- end -}}
+
+{{- if $type.properties -}}
+<h4>Properties</h4>
+<ul>
+	{{- range $propname, $prop := $type.properties -}}
+	<li>
+		<span class="typegray">
+			<a href="#prop.{{ $propname }}">{{ $propname }}</a>
+			{{- if not $prop.type.gadget -}}
+				: {{ partial "qmltype.html" $prop.type }}
+			{{- end -}}
+			{{ if in $prop.flags "default" }}
+				[{{ partial "qmltypeflag.html" "default" }}]
+			{{ end }}
+		</span>
+		{{- if $prop.type.gadget -}}
+			<ul>
+				{{- range $gadgetname, $gadgettype := $prop.type.gadget -}}
+					<li>
+						<a href="#prop.{{ $propname }}">{{ $propname }}.{{ $gadgetname }}</a>:
+						{{ partial "qmltype.html" $gadgettype }}
+					</li>
+				{{- end -}}
+			</ul>
+		{{- end -}}
+	</li>
+	{{- end -}}
+</ul>
+{{- end -}}
+
+{{- if $type.functions -}}
+<h4>Functions</h4>
+<ul>
+	{{- range $funcname, $func := $type.functions -}}
+	<li>
+		<span class="typegray">
+			{{ partial "qmltype.html" $func.ret }}
+			<a href="#func.{{ $funcname }}">{{ $funcname }}</a>(
+				{{- partial "qmlparams.html" $func.params -}}
+			)
+		</span>
+	</li>
+	{{- end -}}
+</ul>
+{{- end -}}
+
+{{- if $type.variants -}}
+<h4>Variants</h4>
+<ul>
+	{{- range $name, $variant := $type.variants -}}
+	<li>
+		<span class="typegray">
+			<a href="#variant.{{ $name }}">{{ $name }}</a>
+		</span>
+	</li>
+	{{- end -}}
+</ul>
+{{- end -}}
+
+{{- if $type.details -}}
+	<h3 id="details">Detailed Description</h3>
+	{{- $type.details | $.Page.RenderString (dict "display" "block") -}}
+{{- end -}}
+
+{{- if $type.properties -}}
+	<h3>Property Details</h3>
+	{{ range $propname, $prop := $type.properties }}
+		<div id="prop.{{ $propname }}" class = "qmlpropdef">
+			{{- if $prop.flags -}}
+				<span class="qmlprops typegray">
+					{{ partial "qmltypeflags.html" $prop.flags }}
+				</span>
+			{{- end -}}
+
+			{{- if $prop.type.gadget -}}
+				{{- range $gadgetname, $gadgettype := $prop.type.gadget -}}
+					<p id="prop.{{ $propname }}.{{ $gadgetname }}">
+					{{ $propname }}.{{ $gadgetname -}}
+					<span class="typegray">:
+						{{ partial "qmltype.html" $gadgettype -}}
+					<span>
+					</p>
+				{{- end -}}
+			{{- else -}}
+				<p>
+				{{ $propname -}}
+				<span class="typegray">:
+					{{ partial "qmltype.html" $prop.type -}}
+				<span>
+				</p>
+			{{- end -}}
+		</div>
+
+		<div class="qmlpropdetails">
+			{{- if $prop.details -}}
+				{{- $prop.details | $.Page.RenderString (dict "display" "block") -}}
+			{{- else -}}
+				<p style="color: #999999"><i>No details provided.</i></p>
+			{{- end -}}
+		</div>
+	{{- end -}}
+{{- end -}}
+
+{{- if $type.functions -}}
+	<h3>Function Details</h3>
+	{{ range $funcname, $func := $type.functions }}
+		<div id="func.{{ $funcname }}" class = "qmlpropdef">
+			{{- if $func.flags -}}
+				<span class="qmlprops typegray">
+					{{ partial "qmltypeflags.html" $func.flags }}
+				</span>
+			{{- end -}}
+
+			<p>
+				<span class="typegray">
+					{{ partial "qmltype.html" $func.ret -}}
+				</span>
+				{{ $funcname -}}
+				<span class="typegray">(
+					{{- partial "qmlparams.html" $func.params -}}
+				)</span>
+			</p>
+		</div>
+
+		<div class="qmlpropdetails">
+			{{- if $func.details -}}
+				{{- $func.details | $.Page.RenderString (dict "display" "block") -}}
+			{{- else -}}
+				<p style="color: #999999"><i>No details provided.</i></p>
+			{{- end -}}
+		</div>
+	{{- end -}}
+{{- end -}}
+
+{{- if $type.variants -}}
+	<h3>Variant Details</h3>
+	{{ range $name, $variant := $type.variants }}
+		<div id="variant.{{ $name }}" class = "qmlpropdef">
+			<p>{{ $name -}}</p>
+		</div>
+
+		<div class="qmlpropdetails">
+			{{- if $variant.details -}}
+				{{- $variant.details | $.Page.RenderString (dict "display" "block") -}}
+			{{- else -}}
+				<p style="color: #999999"><i>No details provided.</i></p>
+			{{- end -}}
+		</div>
+	{{- end -}}
+{{- end -}}

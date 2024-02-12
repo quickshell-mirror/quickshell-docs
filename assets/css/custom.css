@@ -1,0 +1,47 @@
+[id] {
+	scroll-margin-top: var(--navbar-height);
+}
+
+.nav-container-blur {}
+
+.content a:not(:hover) {
+	text-decoration-line: none;
+}
+
+.hextra-scrollbar .font-semibold {
+	font-weight: normal;
+}
+
+.content ul {
+	margin-top: 0;
+}
+
+.typegray {
+	color: #999999;
+}
+
+.qmlpropdef {
+	background-color: rgb(0 0 0 / .05);
+	font-weight: normal;
+	font-size: 1.2rem;
+	border-radius: 5px;
+	margin: 5px 0;
+	padding: 5px;
+}
+
+:is(html[class~="dark"] .qmlpropdef) {
+	background-color: #55555530;
+}
+
+.qmlpropdef > p {
+	padding: 0;
+	margin: 0;
+}
+
+.qmlpropdetails {
+	margin-left: 8px;
+}
+
+.qmlprops {
+	float: right;
+}

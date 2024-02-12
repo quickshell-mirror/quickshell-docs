@@ -1,0 +1,14 @@
+{{- $modulename := .Get "module" -}}
+{{- $module := index .Site.Data.modules $modulename -}}
+{{- $module.index.description | $.Page.RenderString (dict "display" "block") -}}
+<h3>Types</h3>
+<table>
+	{{- range $name, $type := $module -}}
+		{{- if ne $name "index" -}}
+			<tr>
+				<td><a href="/docs/types/{{ lower $modulename }}/{{ lower $name }}">{{ $name }}</a></td>
+				<td>{{ $type.description }}</td>
+			</tr>
+		{{- end -}}
+	{{- end -}}
+</table>

@@ -1,0 +1,12 @@
+# direnv
+/.envrc
+/.direnv
+
+# typegen
+/typegen/target
+/build
+/content/docs/types/QuickShell
+/data/modules
+
+# hugo
+/.hugo_build.lock
