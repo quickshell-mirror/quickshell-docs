@@ -425,10 +425,7 @@ fn parse_details(text: &str) -> String {
 				}
 			}
 		})
-    .fold(String::new(), |accum, line| {
-			let sep = if accum.is_empty() { "" } else { "\n" };
-			accum + sep + line.as_ref()
-		});
+    .fold(String::new(), |accum, line| accum + line.as_ref() + "\n");
 
 	if callout {
 		str += "\n{{< /callout >}}";
@@ -439,9 +436,7 @@ fn parse_details(text: &str) -> String {
 
 fn parse_details_desc(text: &str) -> (Option<String>, Option<String>) {
 	let details = parse_details(text);
-	dbg!(&details);
 	if details.starts_with('!') {
-		dbg!(&details, &details[1..].split_once('\n'));
 		match details[1..].split_once('\n') {
 			Some((desc, details)) => (Some(desc.strip_prefix(' ').unwrap_or(desc).to_string()), Some(details.to_string())),
 			None => (Some(details[1..].strip_prefix(' ').unwrap_or(&details[1..]).to_string()), None),
