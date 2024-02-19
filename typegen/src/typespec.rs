@@ -37,6 +37,7 @@ pub struct Class {
 	pub uncreatable: bool,
 	pub properties: Vec<Property>,
 	pub functions: Vec<Function>,
+	pub signals: Vec<Signal>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,7 +62,14 @@ pub struct Function {
 	pub ret: String,
 	pub name: String,
 	pub details: Option<String>,
-	pub params: Vec<FnParam>
+	pub params: Vec<FnParam>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Signal {
+	pub name: String,
+	pub details: Option<String>,
+	pub params: Vec<FnParam>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

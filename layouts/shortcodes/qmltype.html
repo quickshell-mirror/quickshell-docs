@@ -98,6 +98,21 @@
 </ul>
 {{- end -}}
 
+{{- if $type.signals -}}
+<h4>Signals</h4>
+<ul>
+	{{- range $signame, $sig := $type.signals -}}
+	<li>
+		<span class="typegray">
+			<a href="#signal.{{ $signame }}">{{ $signame }}</a>(
+				{{- partial "qmlparams.html" $sig.params -}}
+			)
+		</span>
+	</li>
+	{{- end -}}
+</ul>
+{{- end -}}
+
 {{- if $type.variants -}}
 <h4>Variants</h4>
 <ul>
@@ -179,6 +194,34 @@
 		<div class="qmlpropdetails">
 			{{- if $func.details -}}
 				{{- $func.details | $.Page.RenderString (dict "display" "block") -}}
+			{{- else -}}
+				<p style="color: #999999"><i>No details provided.</i></p>
+			{{- end -}}
+		</div>
+	{{- end -}}
+{{- end -}}
+
+{{- if $type.signals -}}
+	<h3>Signal Details</h3>
+	{{ range $signame, $sig := $type.signals }}
+		<div id="signal.{{ $signame }}" class = "qmlpropdef">
+			{{- if $sig.flags -}}
+				<span class="qmlprops typegray">
+					{{ partial "qmltypeflags.html" $sig.flags }}
+				</span>
+			{{- end -}}
+
+			<p>
+				{{ $signame -}}
+				<span class="typegray">(
+					{{- partial "qmlparams.html" $sig.params -}}
+				)</span>
+			</p>
+		</div>
+
+		<div class="qmlpropdetails">
+			{{- if $sig.details -}}
+				{{- $sig.details | $.Page.RenderString (dict "display" "block") -}}
 			{{- else -}}
 				<p style="color: #999999"><i>No details provided.</i></p>
 			{{- end -}}

@@ -2,10 +2,10 @@ use std::{collections::HashMap, path::Path};
 
 use anyhow::{anyhow, Context};
 
-mod parse;
-mod typespec;
 mod outform;
+mod parse;
 mod resolver;
+mod typespec;
 
 fn main() -> anyhow::Result<()> {
 	let args = std::env::args().collect::<Vec<_>>();
@@ -19,10 +19,17 @@ fn main() -> anyhow::Result<()> {
 			let text = std::fs::read_to_string(path).expect("failed to read module file");
 			let module = parse::parse_module(&text)?;
 
-			let texts = module.header.headers.iter()
+			let texts = module
+				.header
+				.headers
+				.iter()
 				.map(|header| {
-					let text = std::fs::read_to_string(dir.join(header))
-						.with_context(|| format!("failed to read module header `{header}` at {:?}", dir.join(header)))?;
+					let text = std::fs::read_to_string(dir.join(header)).with_context(|| {
+						format!(
+							"failed to read module header `{header}` at {:?}",
+							dir.join(header)
+						)
+					})?;
 
 					Ok::<_, anyhow::Error>((header, text))
 				})
@@ -30,9 +37,11 @@ fn main() -> anyhow::Result<()> {
 
 			let parser = parse::Parser::new();
 			let mut ctx = parse::ParseContext::default();
-			texts.iter()
+			texts
+				.iter()
 				.map(|(header, text)| {
-					parser.parse(&text, &mut ctx)
+					parser
+						.parse(&text, &mut ctx)
 						.with_context(|| format!("while parsing module header `{header}`"))
 				})
 				.collect::<Result<_, _>>()?;
@@ -41,8 +50,7 @@ fn main() -> anyhow::Result<()> {
 
 			let text = serde_json::to_string_pretty(&typespec).unwrap();
 
-			std::fs::write(outpath, text)
-				.context("saving typespec")?;
+			std::fs::write(outpath, text).context("saving typespec")?;
 		},
 		Some("gendocs") => {
 			let modinfo = args.get(2).expect("expected module file");
@@ -77,18 +85,24 @@ fn main() -> anyhow::Result<()> {
 			for (name, info) in types {
 				let json = serde_json::to_string_pretty(&info).unwrap();
 				let datapath = datapath.join(format!("{name}.json"));
-				std::fs::write(&datapath, json).with_context(|| format!("while writing {datapath:?}"))?;
+				std::fs::write(&datapath, json)
+					.with_context(|| format!("while writing {datapath:?}"))?;
 
-				let template = format!("+++
+				let template = format!(
+					"+++
 title = \"{name}\"
 hidetitle = true
 +++
 
 {{{{< qmltype module=\"{module}\" type=\"{name}\" >}}}}
-", name = name, module = module.header.name);
+",
+					name = name,
+					module = module.header.name
+				);
 
 				let templatepath = templatepath.join(format!("{name}.md"));
-				std::fs::write(&templatepath, template).with_context(|| format!("while writing {templatepath:?}"))?;
+				std::fs::write(&templatepath, template)
+					.with_context(|| format!("while writing {templatepath:?}"))?;
 			}
 
 			let index = outform::ModuleIndex {
@@ -98,17 +112,22 @@ hidetitle = true
 
 			let datapath = datapath.join("index.json");
 			let json = serde_json::to_string_pretty(&index).unwrap();
-			std::fs::write(&datapath, json).with_context(|| format!("while writing {datapath:?}"))?;
+			std::fs::write(&datapath, json)
+				.with_context(|| format!("while writing {datapath:?}"))?;
 
-			let template = format!("+++
+			let template = format!(
+				"+++
 title = \"{name}\"
 +++
 
 {{{{< qmlmodule module=\"{name}\" >}}}}
-", name = module.header.name);
+",
+				name = module.header.name
+			);
 
-				let templatepath = templatepath.join(format!("_index.md"));
-				std::fs::write(&templatepath, template).with_context(|| format!("while writing {templatepath:?}"))?;
+			let templatepath = templatepath.join(format!("_index.md"));
+			std::fs::write(&templatepath, template)
+				.with_context(|| format!("while writing {templatepath:?}"))?;
 		},
 		_ => {
 			panic!("typegen invoked without mode");

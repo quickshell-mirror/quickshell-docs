@@ -27,13 +27,10 @@ pub fn parse_module(text: &str) -> anyhow::Result<ModuleInfo> {
 	header = header.trim();
 	details = details.trim();
 
-	let header = toml::from_str::<ModuleInfoHeader>(header)
-    .context("parsing module info header")?;
+	let header =
+		toml::from_str::<ModuleInfoHeader>(header).context("parsing module info header")?;
 
-	Ok(ModuleInfo {
-		header,
-		details,
-	})
+	Ok(ModuleInfo { header, details })
 }
 
 #[derive(Debug)]
@@ -47,6 +44,7 @@ pub struct ClassInfo<'a> {
 	pub comment: Option<&'a str>,
 	pub properties: Vec<Property<'a>>,
 	pub invokables: Vec<Invokable<'a>>,
+	pub signals: Vec<Signal<'a>>,
 }
 
 #[derive(Debug)]
@@ -69,6 +67,13 @@ pub struct Property<'a> {
 pub struct Invokable<'a> {
 	pub name: &'a str,
 	pub ret: &'a str,
+	pub comment: Option<&'a str>,
+	pub params: Vec<InvokableParam<'a>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Signal<'a> {
+	pub name: &'a str,
 	pub comment: Option<&'a str>,
 	pub params: Vec<InvokableParam<'a>>,
 }
@@ -98,6 +103,7 @@ pub struct Parser {
 	pub class_regex: Regex,
 	pub macro_regex: Regex,
 	pub property_regex: Regex,
+	pub signals_regex: Regex,
 	pub fn_regex: Regex,
 	pub fn_param_regex: Regex,
 	pub defaultprop_classinfo_regex: Regex,
@@ -126,15 +132,20 @@ impl Parser {
 			class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*class\s+(?<name>\w+)(?:\s*:\s*public\s+(?<super>\w+))?.+?\{(?<body>[\s\S]*?)};"#).unwrap(),
 			macro_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<type>(Q|QML)_\w+)\s*(\(\s*(?<args>.*)\s*\))?;"#).unwrap(),
 			property_regex: Regex::new(r#"^\s*(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)(\s+(MEMBER\s+(?<member>\w+)|READ\s+(?<read>\w+)|WRITE\s+(?<write>\w+)|NOTIFY\s+(?<notify>\w+)|(?<const>CONSTANT)))+\s*$"#).unwrap(),
-			fn_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*Q_INVOKABLE\s+(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)\((?<params>[\s\S]*?)\);"#).unwrap(),
+			fn_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<invokable>Q_INVOKABLE)?\s+(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)\((?<params>[\s\S]*?)\);"#).unwrap(),
 			fn_param_regex: Regex::new(r#"(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)(,|$)"#).unwrap(),
+			signals_regex: Regex::new(r#"signals:(?<signals>(\s*(\s*///.*\s*)*void .*;)*)"#).unwrap(),
 			defaultprop_classinfo_regex: Regex::new(r#"^\s*"DefaultProperty", "(?<prop>.+)"\s*$"#).unwrap(),
 			enum_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*namespace (?<namespace>\w+)\s*\{[\s\S]*?(QML_ELEMENT|QML_NAMED_ELEMENT\((?<qml_name>\w+)\));[\s\S]*?enum\s*(?<enum_name>\w+)\s*\{(?<body>[\s\S]*?)\};[\s\S]*?\}"#).unwrap(),
 			enum_variant_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<name>\w+)\s*=\s*\d+,"#).unwrap(),
 		}
 	}
 
-	pub fn parse_classes<'a>(&self, text: &'a str, ctx: &mut ParseContext<'a>) -> anyhow::Result<()> {
+	pub fn parse_classes<'a>(
+		&self,
+		text: &'a str,
+		ctx: &mut ParseContext<'a>,
+	) -> anyhow::Result<()> {
 		for class in self.class_regex.captures_iter(text) {
 			let comment = class.name("comment").map(|m| m.as_str());
 			let name = class.name("name").unwrap().as_str();
@@ -148,6 +159,8 @@ impl Parser {
 			let mut properties = Vec::new();
 			let mut default_property = None;
 			let mut invokables = Vec::new();
+			let mut notify_signals = Vec::new();
+			let mut signals = Vec::new();
 
 			(|| {
 				for macro_ in self.macro_regex.captures_iter(body) {
@@ -160,17 +173,29 @@ impl Parser {
 							"Q_OBJECT" => classtype = Some(ClassType::Object),
 							"Q_GADGET" => classtype = Some(ClassType::Gadget),
 							"QML_ELEMENT" => qml_name = Some(name),
-							"QML_NAMED_ELEMENT" => qml_name = Some(args.ok_or_else(|| anyhow!("expected name for QML_NAMED_ELEMENT"))?),
+							"QML_NAMED_ELEMENT" => {
+								qml_name = Some(args.ok_or_else(|| {
+									anyhow!("expected name for QML_NAMED_ELEMENT")
+								})?)
+							},
 							"QML_SINGLETON" => singleton = true,
 							"QML_UNCREATABLE" => uncreatable = true,
 							"Q_PROPERTY" => {
-								let prop = self.property_regex.captures(args.ok_or_else(|| anyhow!("expected args for Q_PROPERTY"))?)
-									.ok_or_else(|| anyhow!("unable to parse Q_PROPERTY"))?;
+								let prop =
+									self.property_regex
+										.captures(args.ok_or_else(|| {
+											anyhow!("expected args for Q_PROPERTY")
+										})?)
+										.ok_or_else(|| anyhow!("unable to parse Q_PROPERTY"))?;
 
 								let member = prop.name("member").is_some();
 								let read = prop.name("read").is_some();
 								let write = prop.name("write").is_some();
 								let constant = prop.name("const").is_some();
+
+								if let Some(notify) = prop.name("notify").map(|v| v.as_str()) {
+									notify_signals.push(notify);
+								}
 
 								properties.push(Property {
 									type_: prop.name("type").unwrap().as_str(),
@@ -182,7 +207,9 @@ impl Parser {
 								});
 							},
 							"Q_CLASSINFO" => {
-								let classinfo = self.defaultprop_classinfo_regex.captures(args.ok_or_else(|| anyhow!("expected args for Q_CLASSINFO"))?);
+								let classinfo = self.defaultprop_classinfo_regex.captures(
+									args.ok_or_else(|| anyhow!("expected args for Q_CLASSINFO"))?,
+								);
 
 								if let Some(classinfo) = classinfo {
 									let prop = classinfo.name("prop").unwrap().as_str();
@@ -192,10 +219,26 @@ impl Parser {
 							_ => {},
 						}
 						Ok::<_, anyhow::Error>(())
-					})().with_context(|| format!("while parsing macro `{}`", macro_.get(0).unwrap().as_str()))?;
+					})()
+					.with_context(|| {
+						format!("while parsing macro `{}`", macro_.get(0).unwrap().as_str())
+					})?;
+				}
+
+				if let Some(prop) = default_property {
+					let prop = properties
+						.iter_mut()
+						.find(|p| p.name == prop)
+						.ok_or_else(|| anyhow!("could not find default property `{prop}`"))?;
+
+					prop.default = true;
 				}
 
 				for invokable in self.fn_regex.captures_iter(body) {
+					if invokable.name("invokable").is_none() {
+						continue;
+					}
+
 					let comment = invokable.name("comment").map(|m| m.as_str());
 					let type_ = invokable.name("type").unwrap().as_str();
 					let name = invokable.name("name").unwrap().as_str();
@@ -207,10 +250,7 @@ impl Parser {
 						let type_ = param.name("type").unwrap().as_str();
 						let name = param.name("name").unwrap().as_str();
 
-						params.push(InvokableParam {
-							type_,
-							name,
-						});
+						params.push(InvokableParam { type_, name });
 					}
 
 					invokables.push(Invokable {
@@ -221,15 +261,47 @@ impl Parser {
 					});
 				}
 
-				if let Some(prop) = default_property {
-					let prop = properties.iter_mut().find(|p| p.name == prop)
-						.ok_or_else(|| anyhow!("could not find default property `{prop}`"))?;
+				for signal_set in self.signals_regex.captures_iter(body) {
+					let signals_body = signal_set.name("signals").unwrap().as_str();
 
-					prop.default = true;
+					for signal in self.fn_regex.captures_iter(signals_body) {
+						if signal.name("invokable").is_some() {
+							continue;
+						}
+
+						let comment = signal.name("comment").map(|m| m.as_str());
+						let type_ = signal.name("type").unwrap().as_str();
+						let name = signal.name("name").unwrap().as_str();
+						let params_raw = signal.name("params").unwrap().as_str();
+
+						if notify_signals.contains(&name) {
+							continue;
+						}
+
+						if type_ != "void" {
+							bail!("non void return for signal {name}");
+						}
+
+						let mut params = Vec::new();
+
+						for param in self.fn_param_regex.captures_iter(params_raw) {
+							let type_ = param.name("type").unwrap().as_str();
+							let name = param.name("name").unwrap().as_str();
+
+							params.push(InvokableParam { type_, name });
+						}
+
+						signals.push(Signal {
+							name,
+							comment,
+							params,
+						});
+					}
 				}
 
 				Ok::<_, anyhow::Error>(())
-			})().with_context(|| format!("while parsing class `{name}`"))?;
+			})()
+			.with_context(|| format!("while parsing class `{name}`"))?;
 
 			let Some(type_) = classtype else { continue };
 
@@ -243,6 +315,7 @@ impl Parser {
 				comment,
 				properties,
 				invokables,
+				signals,
 			});
 		}
 
@@ -254,7 +327,10 @@ impl Parser {
 			let comment = enum_.name("comment").map(|m| m.as_str());
 			let namespace = enum_.name("namespace").unwrap().as_str();
 			let enum_name = enum_.name("enum_name").unwrap().as_str();
-			let qml_name = enum_.name("qml_name").map(|m| m.as_str()).unwrap_or(namespace);
+			let qml_name = enum_
+				.name("qml_name")
+				.map(|m| m.as_str())
+				.unwrap_or(namespace);
 			let body = enum_.name("body").unwrap().as_str();
 
 			let mut variants = Vec::new();
@@ -263,10 +339,7 @@ impl Parser {
 				let comment = variant.name("comment").map(|m| m.as_str());
 				let name = variant.name("name").unwrap().as_str();
 
-				variants.push(Variant {
-					name,
-					comment,
-				});
+				variants.push(Variant { name, comment });
 			}
 
 			ctx.enums.push(EnumInfo {
@@ -292,51 +365,72 @@ impl Parser {
 impl ParseContext<'_> {
 	pub fn gen_typespec(&self, module: &str) -> typespec::TypeSpec {
 		typespec::TypeSpec {
-			typemap: self.classes.iter().filter_map(|class| {
-				Some(typespec::QmlTypeMapping {
-					// filters gadgets
-					name: class.qml_name?.to_string(),
-					cname: class.name.to_string(),
-					module: Some(module.to_string()),
+			typemap: self
+				.classes
+				.iter()
+				.filter_map(|class| {
+					Some(typespec::QmlTypeMapping {
+						// filters gadgets
+						name: class.qml_name?.to_string(),
+						cname: class.name.to_string(),
+						module: Some(module.to_string()),
+					})
 				})
-			}).collect(),
-			classes: self.classes.iter().filter_map(|class| {
-				let (description, details) = class.comment.map(parse_details_desc)
-					.unwrap_or((None, None));
+				.collect(),
+			classes: self
+				.classes
+				.iter()
+				.filter_map(|class| {
+					let (description, details) = class
+						.comment
+						.map(parse_details_desc)
+						.unwrap_or((None, None));
 
-				Some(typespec::Class {
-					name: class.name.to_string(),
-					module: module.to_string(),
-					description,
-					details,
-					// filters gadgets
-					superclass: class.superclass?.to_string(),
-					singleton: class.singleton,
-					uncreatable: class.uncreatable,
-					properties: class.properties.iter().map(|p| (*p).into()).collect(),
-					functions: class.invokables.iter().map(|f| f.as_typespec()).collect(),
+					Some(typespec::Class {
+						name: class.name.to_string(),
+						module: module.to_string(),
+						description,
+						details,
+						// filters gadgets
+						superclass: class.superclass?.to_string(),
+						singleton: class.singleton,
+						uncreatable: class.uncreatable,
+						properties: class.properties.iter().map(|p| (*p).into()).collect(),
+						functions: class.invokables.iter().map(|f| f.as_typespec()).collect(),
+						signals: class.signals.iter().map(|s| s.as_typespec()).collect(),
+					})
 				})
-			}).collect(),
-			gadgets: self.classes.iter().filter_map(|class| match class.type_ {
-				ClassType::Gadget => Some(typespec::Gadget {
-					cname: class.name.to_string(),
-					properties: class.properties.iter().map(|p| (*p).into()).collect(),
-				}),
-				_ => None,
-			}).collect(),
-			enums: self.enums.iter().map(|enum_| {
-				let (description, details) = enum_.comment.map(parse_details_desc)
-					.unwrap_or((None, None));
+				.collect(),
+			gadgets: self
+				.classes
+				.iter()
+				.filter_map(|class| match class.type_ {
+					ClassType::Gadget => Some(typespec::Gadget {
+						cname: class.name.to_string(),
+						properties: class.properties.iter().map(|p| (*p).into()).collect(),
+					}),
+					_ => None,
+				})
+				.collect(),
+			enums: self
+				.enums
+				.iter()
+				.map(|enum_| {
+					let (description, details) = enum_
+						.comment
+						.map(parse_details_desc)
+						.unwrap_or((None, None));
 
-				typespec::Enum {
-					name: enum_.qml_name.to_string(),
-					module: Some(module.to_string()),
-					cname: Some(format!("{}::{}", enum_.namespace, enum_.enum_name)),
-					description,
-					details,
-					varaints: enum_.variants.iter().map(|v| (*v).into()).collect(),
-				}
-			}).collect(),
+					typespec::Enum {
+						name: enum_.qml_name.to_string(),
+						module: Some(module.to_string()),
+						cname: Some(format!("{}::{}", enum_.namespace, enum_.enum_name)),
+						description,
+						details,
+						varaints: enum_.variants.iter().map(|v| (*v).into()).collect(),
+					}
+				})
+				.collect(),
 		}
 	}
 }
@@ -374,6 +468,16 @@ impl Invokable<'_> {
 	}
 }
 
+impl Signal<'_> {
+	fn as_typespec(&self) -> typespec::Signal {
+		typespec::Signal {
+			name: self.name.to_string(),
+			details: self.comment.map(parse_details),
+			params: self.params.iter().map(|p| (*p).into()).collect(),
+		}
+	}
+}
+
 impl From<InvokableParam<'_>> for typespec::FnParam {
 	fn from(value: InvokableParam<'_>) -> Self {
 		Self {
@@ -387,45 +491,44 @@ fn parse_details(text: &str) -> String {
 	let mut seen_content = false;
 	let mut callout = false;
 
-	let mut str = text.lines()
-    .map(|line| {
+	let mut str = text
+		.lines()
+		.map(|line| {
 			line.trim()
 				.strip_prefix("///")
 				.map(|line| line.strip_prefix(' ').unwrap_or(line))
 				.unwrap_or(line)
 		})
-    .filter(|line| {
+		.filter(|line| {
 			let any = !line.is_empty();
 			let filter = any || seen_content;
 			seen_content |= any;
 			filter
 		})
-    .map(|line| {
-			match callout {
-				true => {
-					if line.starts_with('>') {
-						Cow::Borrowed(line[1..].strip_prefix(' ').unwrap_or(&line[1..]))
-					} else {
-						callout = false;
-						Cow::Owned(format!("{{{{< /callout >}}}}\n{line}"))
+		.map(|line| match callout {
+			true => {
+				if line.starts_with('>') {
+					Cow::Borrowed(line[1..].strip_prefix(' ').unwrap_or(&line[1..]))
+				} else {
+					callout = false;
+					Cow::Owned(format!("{{{{< /callout >}}}}\n{line}"))
+				}
+			},
+			false => {
+				if line.starts_with("> [!") {
+					let code = line[4..].split_once(']');
+
+					if let Some((code, line)) = code {
+						let code = code.to_lowercase();
+						callout = true;
+						return Cow::Owned(format!("{{{{< callout type=\"{code}\" >}}}}\n{line}"))
 					}
 				}
-				false => {
-					if line.starts_with("> [!") {
-						let code = line[4..].split_once(']');
 
-						if let Some((code, line)) = code {
-							let code = code.to_lowercase();
-							callout = true;
-							return Cow::Owned(format!("{{{{< callout type=\"{code}\" >}}}}\n{line}"))
-						}
-					}
-
-					return Cow::Borrowed(line);
-				}
-			}
+				return Cow::Borrowed(line);
+			},
 		})
-    .fold(String::new(), |accum, line| accum + line.as_ref() + "\n");
+		.fold(String::new(), |accum, line| accum + line.as_ref() + "\n");
 
 	if callout {
 		str += "\n{{< /callout >}}";
@@ -438,8 +541,19 @@ fn parse_details_desc(text: &str) -> (Option<String>, Option<String>) {
 	let details = parse_details(text);
 	if details.starts_with('!') {
 		match details[1..].split_once('\n') {
-			Some((desc, details)) => (Some(desc.strip_prefix(' ').unwrap_or(desc).to_string()), Some(details.to_string())),
-			None => (Some(details[1..].strip_prefix(' ').unwrap_or(&details[1..]).to_string()), None),
+			Some((desc, details)) => (
+				Some(desc.strip_prefix(' ').unwrap_or(desc).to_string()),
+				Some(details.to_string()),
+			),
+			None => (
+				Some(
+					details[1..]
+						.strip_prefix(' ')
+						.unwrap_or(&details[1..])
+						.to_string(),
+				),
+				None,
+			),
 		}
 	} else {
 		(None, Some(details))

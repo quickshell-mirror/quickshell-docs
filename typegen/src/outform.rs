@@ -26,6 +26,7 @@ pub struct ClassInfo {
 	pub flags: Vec<Flag>,
 	pub properties: HashMap<String, Property>,
 	pub functions: HashMap<String, Function>,
+	pub signals: HashMap<String, Signal>,
 }
 
 #[derive(Debug, Serialize)]
@@ -48,6 +49,13 @@ pub enum PropertyType {
 #[derive(Debug, Serialize)]
 pub struct Function {
 	pub ret: Type,
+	pub name: String,
+	pub details: Option<String>,
+	pub params: HashMap<String, Type>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Signal {
 	pub name: String,
 	pub details: Option<String>,
 	pub params: HashMap<String, Type>,
