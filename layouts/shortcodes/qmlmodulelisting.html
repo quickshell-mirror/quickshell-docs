@@ -2,7 +2,7 @@
 	{{- range $name, $module := .Site.Data.modules -}}
 		<tr>
 			<td><a href="/docs/types/{{ lower $name }}">{{ $name }}</a></td>
-			<td>{{ $module.index.shortDescription }}</td>
+			<td>{{ $module.index.description }}</td>
 		</tr>
 	{{- end -}}
 </table>
