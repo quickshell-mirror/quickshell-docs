@@ -5,7 +5,7 @@
 # typegen
 /typegen/target
 /build
-/content/docs/types/QuickShell
+/content/docs/types/QuickShell*
 /data/modules
 
 # hugo
