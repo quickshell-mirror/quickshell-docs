@@ -1,6 +1,6 @@
 baseURL = "https://example.org/"
 languageCode = "en-us"
-title = "QuickShell"
+title = "Quickshell"
 theme = "hextra"
 
 [params.theme]
