@@ -129,7 +129,7 @@ impl Default for ParseContext<'_> {
 impl Parser {
 	pub fn new() -> Self {
 		Self {
-			class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*class\s+(?<name>\w+)(?:\s*:\s*public\s+(?<super>\w+))?.+?\{(?<body>[\s\S]*?)};"#).unwrap(),
+			class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*class\s+(?<name>\w+)(?:\s*:\s*public\s+(?<super>\w+)(\s*,(\s*\w+)*)*)?\s*\{(?<body>[\s\S]*?)};"#).unwrap(),
 			macro_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<type>(Q|QML)_\w+)\s*(\(\s*(?<args>.*)\s*\))?;"#).unwrap(),
 			property_regex: Regex::new(r#"^\s*(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)(\s+(MEMBER\s+(?<member>\w+)|READ\s+(?<read>\w+)|WRITE\s+(?<write>\w+)|NOTIFY\s+(?<notify>\w+)|(?<const>CONSTANT)))+\s*$"#).unwrap(),
 			fn_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<invokable>Q_INVOKABLE)?\s+(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)\((?<params>[\s\S]*?)\);"#).unwrap(),
