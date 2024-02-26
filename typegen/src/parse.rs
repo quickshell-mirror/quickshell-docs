@@ -130,7 +130,7 @@ impl Parser {
 	pub fn new() -> Self {
 		Self {
 			class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*class\s+(?<name>\w+)(?:\s*:\s*public\s+(?<super>\w+)(\s*,(\s*\w+)*)*)?\s*\{(?<body>[\s\S]*?)};"#).unwrap(),
-			macro_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<type>(Q|QML)_\w+)\s*(\(\s*(?<args>.*)\s*\))?;"#).unwrap(),
+			macro_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<hide>QSDOC_HIDE\s)?(?<type>(Q|QML|QSDOC)_\w+)\s*(\(\s*(?<args>.*)\s*\))?;"#).unwrap(),
 			property_regex: Regex::new(r#"^\s*(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)(\s+(MEMBER\s+(?<member>\w+)|READ\s+(?<read>\w+)|WRITE\s+(?<write>\w+)|NOTIFY\s+(?<notify>\w+)|(?<const>CONSTANT)))+\s*$"#).unwrap(),
 			fn_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<invokable>Q_INVOKABLE)?\s+(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)\((?<params>[\s\S]*?)\);"#).unwrap(),
 			fn_param_regex: Regex::new(r#"(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)(,|$)"#).unwrap(),
@@ -149,7 +149,7 @@ impl Parser {
 		for class in self.class_regex.captures_iter(text) {
 			let comment = class.name("comment").map(|m| m.as_str());
 			let name = class.name("name").unwrap().as_str();
-			let superclass = class.name("super").map(|m| m.as_str());
+			let mut superclass = class.name("super").map(|m| m.as_str());
 			let body = class.name("body").unwrap().as_str();
 
 			let mut classtype = None;
@@ -164,16 +164,23 @@ impl Parser {
 
 			(|| {
 				for macro_ in self.macro_regex.captures_iter(body) {
+					if macro_.name("hide").is_some() {
+						continue
+					}
+
 					let comment = macro_.name("comment").map(|m| m.as_str());
 					let type_ = macro_.name("type").unwrap().as_str();
 					let args = macro_.name("args").map(|m| m.as_str());
 
 					(|| {
 						match type_ {
+							"QSDOC_BASECLASS" => superclass = Some(
+								args.expect("QSDOC_BASECLASS must have the base class as an argument")
+							),
 							"Q_OBJECT" => classtype = Some(ClassType::Object),
 							"Q_GADGET" => classtype = Some(ClassType::Gadget),
-							"QML_ELEMENT" => qml_name = Some(name),
-							"QML_NAMED_ELEMENT" => {
+							"QML_ELEMENT" | "QSDOC_ELEMENT" => qml_name = Some(name),
+							"QML_NAMED_ELEMENT" | "QSDOC_NAMED_ELEMENT" => {
 								qml_name = Some(args.ok_or_else(|| {
 									anyhow!("expected name for QML_NAMED_ELEMENT")
 								})?)
