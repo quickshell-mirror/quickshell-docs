@@ -105,6 +105,7 @@ pub struct Parser {
 	pub property_regex: Regex,
 	pub signals_regex: Regex,
 	pub fn_regex: Regex,
+	pub signal_regex: Regex,
 	pub fn_param_regex: Regex,
 	pub defaultprop_classinfo_regex: Regex,
 	pub enum_regex: Regex,
@@ -132,7 +133,8 @@ impl Parser {
 			class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*class\s+(?<name>\w+)(?:\s*:\s*public\s+(?<super>\w+)(\s*,(\s*\w+)*)*)?\s*\{(?<body>[\s\S]*?)};"#).unwrap(),
 			macro_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<hide>QSDOC_HIDE\s)?(?<type>(Q|QML|QSDOC)_\w+)\s*(\(\s*(?<args>.*)\s*\))?;"#).unwrap(),
 			property_regex: Regex::new(r#"^\s*(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)(\s+(MEMBER\s+(?<member>\w+)|READ\s+(?<read>\w+)|WRITE\s+(?<write>\w+)|NOTIFY\s+(?<notify>\w+)|(?<const>CONSTANT)))+\s*$"#).unwrap(),
-			fn_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<invokable>Q_INVOKABLE)?\s+(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)\((?<params>[\s\S]*?)\);"#).unwrap(),
+			fn_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*Q_INVOKABLE\s+(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)\((?<params>[\s\S]*?)\);"#).unwrap(),
+			signal_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*void\s+(?<name>\w+)\((?<params>[\s\S]*?)\);"#).unwrap(),
 			fn_param_regex: Regex::new(r#"(const\s+)?(?<type>(\w|::|<|>)+\*?)&?\s+(?<name>\w+)(,|$)"#).unwrap(),
 			signals_regex: Regex::new(r#"signals:(?<signals>(\s*(\s*///.*\s*)*void .*;)*)"#).unwrap(),
 			defaultprop_classinfo_regex: Regex::new(r#"^\s*"DefaultProperty", "(?<prop>.+)"\s*$"#).unwrap(),
@@ -174,9 +176,11 @@ impl Parser {
 
 					(|| {
 						match type_ {
-							"QSDOC_BASECLASS" => superclass = Some(
-								args.expect("QSDOC_BASECLASS must have the base class as an argument")
-							),
+							"QSDOC_BASECLASS" => {
+								superclass = Some(args.expect(
+									"QSDOC_BASECLASS must have the base class as an argument",
+								))
+							},
 							"Q_OBJECT" => classtype = Some(ClassType::Object),
 							"Q_GADGET" => classtype = Some(ClassType::Gadget),
 							"QML_ELEMENT" | "QSDOC_ELEMENT" => qml_name = Some(name),
@@ -242,9 +246,6 @@ impl Parser {
 				}
 
 				for invokable in self.fn_regex.captures_iter(body) {
-					if invokable.name("invokable").is_none() {
-						continue;
-					}
 
 					let comment = invokable.name("comment").map(|m| m.as_str());
 					let type_ = invokable.name("type").unwrap().as_str();
@@ -271,22 +272,17 @@ impl Parser {
 				for signal_set in self.signals_regex.captures_iter(body) {
 					let signals_body = signal_set.name("signals").unwrap().as_str();
 
-					for signal in self.fn_regex.captures_iter(signals_body) {
+					for signal in self.signal_regex.captures_iter(signals_body) {
 						if signal.name("invokable").is_some() {
 							continue;
 						}
 
 						let comment = signal.name("comment").map(|m| m.as_str());
-						let type_ = signal.name("type").unwrap().as_str();
 						let name = signal.name("name").unwrap().as_str();
 						let params_raw = signal.name("params").unwrap().as_str();
 
 						if notify_signals.contains(&name) {
 							continue;
-						}
-
-						if type_ != "void" {
-							bail!("non void return for signal {name}");
 						}
 
 						let mut params = Vec::new();
