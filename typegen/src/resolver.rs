@@ -122,10 +122,6 @@ pub fn resolve_types(
 						list = true;
 					}
 
-					if ctype.ends_with('*') {
-						ctype = &ctype[..ctype.len() - 1];
-					}
-
 					let mut type_ = qmlparamtype(ctype, typespec);
 
 					if list {
