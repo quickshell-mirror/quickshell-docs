@@ -45,3 +45,7 @@
 .qmlprops {
 	float: right;
 }
+
+.small {
+	font-size: 0.75rem;
+}
