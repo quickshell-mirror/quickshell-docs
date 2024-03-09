@@ -1,0 +1,47 @@
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1709703039,
+        "narHash": "sha256-6hqgQ8OK6gsMu1VtcGKBxKQInRLHtzulDo9Z5jxHEFY=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "9df3e30ce24fd28c7b3e2de0d986769db5d6225d",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "ref": "nixos-unstable",
+        "type": "indirect"
+      }
+    },
+    "quickshell": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1709989609,
+        "narHash": "sha256-l6RQfXuE7XL2VQUq1Fja5NESPo0PuhFKZp2X1C9CFBk=",
+        "ref": "refs/heads/master",
+        "rev": "5f9bb9b46c1435777f9782f09f077ebc3ef222c9",
+        "revCount": 104,
+        "type": "git",
+        "url": "https://git.outfoxxed.me/outfoxxed/quickshell"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://git.outfoxxed.me/outfoxxed/quickshell"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs",
+        "quickshell": "quickshell"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

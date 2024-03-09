@@ -10,3 +10,7 @@
 
 # hugo
 /.hugo_build.lock
+/public/
+
+# nix
+/result

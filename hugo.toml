@@ -1,4 +1,4 @@
-baseURL = "https://example.org/"
+baseURL = "https://quickshell.outfoxxed.me"
 languageCode = "en-us"
 title = "Quickshell"
 theme = "hextra"
@@ -12,6 +12,12 @@ enable = true
 type = "flexsearch"
 flexsearch.index = "content"
 
+[params.navbar]
+displayLogo = false
+
+[params.page]
+width = "wide"
+
 [markup] # required by theme to render properly
 goldmark.renderer.unsafe = true
 highlight.noClasses = false
@@ -20,9 +26,13 @@ highlight.noClasses = false
 name = "QtQuick Type Reference ↗"
 url = "https://doc.qt.io/qt-6/qtquick-qmlmodule.html"
 
+[[menu.sidebar]]
+name = "Quickshell Examples ↗"
+url = "https://git.outfoxxed.me/outfoxxed/quickshell-examples"
+
 [[menu.main]]
-name = "Docs"
-pageRef = "/docs"
+name = "Configuration"
+pageRef = "/docs/configuration"
 weight = 1
 
 [[menu.main]]
@@ -31,6 +41,11 @@ pageRef = "/docs/types"
 weight = 2
 
 [[menu.main]]
-name = "Search"
+name = "Source ↗"
+url = "https://git.outfoxxed.me/outfoxxed/quickshell"
 weight = 3
+
+[[menu.main]]
+name = "Search"
+weight = 4
 params.type = "search"
