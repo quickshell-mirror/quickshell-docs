@@ -191,7 +191,7 @@ impl Parser {
 							},
 							"QML_SINGLETON" => singleton = true,
 							"QML_UNCREATABLE" => uncreatable = true,
-							"Q_PROPERTY" => {
+							"Q_PROPERTY" | "QSDOC_PROPERTY_OVERRIDE" => {
 								let prop =
 									self.property_regex
 										.captures(args.ok_or_else(|| {
