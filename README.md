@@ -2,6 +2,8 @@
 
 Documentation for [quickshell](https://git.outfoxxed.me/outfoxxed/quickshell).
 
+Hosted version at [quickshell.outfoxxed.me](https://quickshell.outfoxxed.me).
+
 # Building the documentation
 
 The docs depend on:
