@@ -141,7 +141,7 @@ specifying a version at least when importing quickshell modules.
 
 #### Implicit imports
 
-The QML engine will automatically import any [types](#types) in neighboring files
+The QML engine will automatically import any [types](#creating-types) in neighboring files
 with names that start with an uppercase letter.
 
 ```
@@ -222,10 +222,9 @@ Properties can be defined inside of objects with the following syntax:
 [required] [readonly] [default] property <type> <name>[: binding]
 ```
 
-- `required` forces users of this type to assign this property. See [Types](#types) for details.
+- `required` forces users of this type to assign this property. See [Creating Types](#creating-types) for details.
 - `readonly` makes the property not assignable. Its binding will still be [reactive](#reactive-bindings).
-- `default` makes the property the default property of this type. See [Types](#types)
-for details.
+- `default` makes the property the [default property](#the-default-property) of this type.
 - `type` is the type of the property. You can use `var` if you don't know or don't care but be aware that `var` will
 allow any value type.
 - `name` is the name that the property is known as. It cannot start with an uppercase letter.
@@ -246,6 +245,39 @@ Item {
 
 Defining a property with the same name as one provided by the current object will override
 the property of the type it is derived from in the current context.
+
+##### The default property
+
+Types can have a *default property* which must accept either an object or a list of objects.
+
+The default property will allow you to assign a value to it without using the name of the property:
+```qml
+Item {
+  // normal property
+  foo: 3
+
+  // this item is assigned to the outer object's default property
+  Item {
+  }
+}
+```
+
+If the default property is a list, you can put multiple objects into it the same way as you
+would put a single object in:
+```qml
+Item {
+  // normal property
+  foo: 3
+
+  // this item is assigned to the outer object's default property
+  Item {
+  }
+
+  // this one is too
+  Item {
+  }
+}
+```
 
 ##### The `id` property
 
@@ -641,6 +673,22 @@ Item {
   }
 }
 ```
+
+##### Singletons
+QML Types can be easily made into a singleton, meaning there is only one instance
+of the type.
+
+To make a type a singleton, put `pragma Singleton` at the top of the file.
+
+```qml
+pragma Singleton
+import ...
+
+Item { ... }
+```
+
+once a type is a singleton, its members can be accessed by name from neighboring
+files.
 
 ## Concepts
 
