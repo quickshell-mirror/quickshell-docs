@@ -236,8 +236,9 @@ you supply. (A component is a re-usable tree of objects.)
 The most common use of `Variants` in a shell is to create instances of
 a window (your bar) based on your monitor list (the data model).
 
-Variants will inject the properties in the data model directly into the component,
-meaning we can easily set the screen property of our bar
+Variants will inject the properties in the data model directly into each new
+component's `modelData` property, which means we can easily pass each screen
+to its own component.
 (See [Window.screen](/docs/types/quickshell/qswindow/#prop.screen).)
 
 ```qml
@@ -247,23 +248,16 @@ import QtQuick
 
 ShellRoot {
   Variants {
-    variants: {
-      // get the list of screens from the Quickshell singleton
-      const screens = Quickshell.screens;
+    model: Quickshell.screens;
 
-      // transform the screen list into a list of objects with
-      // screen variables, which will be set for each created object
-      const variants = screens.map(screen => {
-        return { screen: screen };
-      });
-
-      return variants;
-    }
-
-    component: Component {
+    delegate: Component {
       PanelWindow {
-        // the screen property will be injected into the window,
-        // so each bar displays on the right monitor
+        // the screen from the screens list will be injected into this
+        // property
+        property var modelData
+
+        // we can then set the window's screen to the injected property
+        screen: modelData
 
         anchors {
           top: true
@@ -327,10 +321,13 @@ import QtQuick
 
 ShellRoot {
   Variants {
-    variants: Quickshell.screens.map(screen => ({ screen }))
+    model: Quickshell.screens
 
-    component: Component {
+    delegate: Component {
       PanelWindow {
+        property var modelData
+        screen: modelData
+
         anchors {
           top: true
           left: true
@@ -404,10 +401,13 @@ ShellRoot {
   property string time;
 
   Variants {
-    variants: Quickshell.screens.map(screen => ({ screen }))
+    model: Quickshell.screens
 
-    component: Component {
+    delegate: Component {
       PanelWindow {
+        property var modelData
+        screen: modelData
+
         anchors {
           top: true
           left: true
@@ -453,8 +453,8 @@ above code, but we can make it more concise:
 
 1. `Component`s can be defined implicitly, meaning we can remove the
 component wrapping the window and place the window directly into the
-`component` property.
-2. The [Variants.component](/docs/types/quickshell/variants/#prop.component)
+`delegate` property.
+2. The [Variants.delegate](/docs/types/quickshell/variants/#prop.delegate)
 property is a [Default Property](/docs/configuration/qml-overview/#the-default-property),
 which means we can skip the `component: ` part of the assignment.
 We're already using [ShellRoot](/docs/types/quickshell/shellroot/)'s
@@ -475,9 +475,12 @@ ShellRoot {
   property string time;
 
   Variants {
-    variants: Quickshell.screens.map(screen => ({ screen }))
+    model: Quickshell.screens
 
     PanelWindow {
+      property var modelData
+      screen: modelData
+
       anchors {
         top: true
         left: true
@@ -538,9 +541,12 @@ Scope {
   property string time;
 
   Variants {
-    variants: Quickshell.screens.map(screen => ({ screen }))
+    model: Quickshell.screens
 
     PanelWindow {
+      property var modelData
+      screen: modelData
+
       anchors {
         top: true
         left: true
@@ -619,9 +625,12 @@ Scope {
   property string time;
 
   Variants {
-    variants: Quickshell.screens.map(screen => ({ screen }))
+    model: Quickshell.screens
 
     PanelWindow {
+      property var modelData
+      screen: modelData
+
       anchors {
         top: true
         left: true
@@ -698,9 +707,12 @@ Scope {
   Time { id: timeSource }
 
   Variants {
-    variants: Quickshell.screens.map(screen => ({ screen }))
+    model: Quickshell.screens
 
     PanelWindow {
+      property var modelData
+      screen: modelData
+
       anchors {
         top: true
         left: true
@@ -782,9 +794,12 @@ Scope {
   // no more time object
 
   Variants {
-    variants: Quickshell.screens.map(screen => ({ screen }))
+    model: Quickshell.screens
 
     PanelWindow {
+      property var modelData
+      screen: modelData
+
       anchors {
         top: true
         left: true
