@@ -514,3 +514,293 @@ ShellRoot {
   }
 }
 ```
+
+## Multiple files
+
+In an example as small as this it isn't a problem, but as your project
+gets bigger you may become annoyed having everything all
+in one file. Luckily its easy to break a component out to a new file.
+
+Lets move the entire bar into a new file to make space for other widgets:
+```qml {filename="shell.qml"}
+import Quickshell
+
+ShellRoot {
+  Bar {}
+}
+```
+
+```qml {filename="Bar.qml"}
+import Quickshell
+import Quickshell.Io
+import QtQuick
+
+Scope {
+  property string time;
+
+  Variants {
+    variants: Quickshell.screens.map(screen => ({ screen }))
+
+    PanelWindow {
+      anchors {
+        top: true
+        left: true
+        right: true
+      }
+
+      height: 30
+
+      Text {
+        anchors.centerIn: parent
+
+        // now just time instead of root.time
+        text: time
+      }
+    }
+  }
+
+  Process {
+    id: dateProc
+    command: ["date"]
+    running: true
+
+    stdout: SplitParser {
+      // now just time instead of root.time
+      onRead: data => time = data
+    }
+  }
+
+  Timer {
+    interval: 1000
+    running: true
+    repeat: true
+    onTriggered: dateProc.running = true
+  }
+}
+```
+<span class="small">See also: [Scope](/docs/types/quickshell/scope/)</span>
+
+Any qml file that starts with an uppercase letter can be referenced this way.
+We can bring in other folders as well using
+[import statements](/docs/configuration/qml-overview/#explicit-imports).
+
+Now what about breaking out the clock? This is a bit more complex because
+the clock component in the bar and the process and timer that make up the actual
+clock both need to be dealt with.
+
+To start with let's move the clock to a new file. For now it's just a
+single `Text` object but the same concepts apply regardless of complexity
+(and you probably want a more complicated clock than this.)
+
+```qml {filename="ClockWidget.qml"}
+import QtQuick
+
+// Item is a common base type for visual components
+Item {
+  // make a property the creator of this type is required to set
+  required property string time
+
+  // size the item to its children
+  width: childrenRect.width
+  height: childrenRect.height
+
+  // use the default property to contain the clock
+  Text {
+    text: time
+  }
+}
+```
+
+```qml {filename="Bar.qml"}
+import Quickshell
+import Quickshell.Io
+import QtQuick
+
+Scope {
+  id: root
+  property string time;
+
+  Variants {
+    variants: Quickshell.screens.map(screen => ({ screen }))
+
+    PanelWindow {
+      anchors {
+        top: true
+        left: true
+        right: true
+      }
+
+      height: 30
+
+      // the ClockWidget type we just created
+      ClockWidget {
+        anchors.centerIn: parent
+        // Warning: setting `time: time` will bind time to itself which is not what we want
+        time: root.time
+      }
+    }
+  }
+
+  Process {
+    id: dateProc
+    command: ["date"]
+    running: true
+
+    stdout: SplitParser {
+      onRead: data => time = data
+    }
+  }
+
+  Timer {
+    interval: 1000
+    running: true
+    repeat: true
+    onTriggered: dateProc.running = true
+  }
+}
+```
+
+While this example is larger than what we had before, we can now expand
+on the clock widget without cluttering the bar file.
+
+Let's deal with the clock's update logic now:
+
+```qml {filename="Time.qml"}
+import Quickshell
+import Quickshell.Io
+import QtQuick
+
+Scope {
+  property string time;
+
+  Process {
+    id: dateProc
+    command: ["date"]
+    running: true
+
+    stdout: SplitParser {
+      onRead: data => time = data
+    }
+  }
+
+  Timer {
+    interval: 1000
+    running: true
+    repeat: true
+    onTriggered: dateProc.running = true
+  }
+}
+```
+
+```qml {filename="Bar.qml"}
+import Quickshell
+
+Scope {
+  // the Time type we just created
+  Time { id: timeSource }
+
+  Variants {
+    variants: Quickshell.screens.map(screen => ({ screen }))
+
+    PanelWindow {
+      anchors {
+        top: true
+        left: true
+        right: true
+      }
+
+      height: 30
+
+      ClockWidget {
+        anchors.centerIn: parent
+        // now using the time from timeSource
+        time: timeSource.time
+      }
+    }
+  }
+}
+```
+
+## Singletons
+
+Now you might be thinking, why do we need the `Time` type in
+our bar file, and the answer is we don't. We can make `Time`
+a [singleton](/docs/configuration/qml-overview/#singletons).
+
+A singleton object has only one instance, and is accessible from
+any scope.
+
+```qml {filename="Time.qml"}
+// with this line our type becomes a singleton
+pragma Singleton
+
+import Quickshell
+import Quickshell.Io
+import QtQuick
+
+// your singletons should always have Singleton as the type
+Singleton {
+  property string time;
+
+  Process {
+    id: dateProc
+    command: ["date"]
+    running: true
+
+    stdout: SplitParser {
+      onRead: data => time = data
+    }
+  }
+
+  Timer {
+    interval: 1000
+    running: true
+    repeat: true
+    onTriggered: dateProc.running = true
+  }
+}
+```
+
+```qml {filename="ClockWidget.qml"}
+import QtQuick
+
+Item {
+  // we no longer need time as an input
+
+  width: childrenRect.width
+  height: childrenRect.height
+
+  Text {
+    // directly access the time property from the Time singleton
+    text: Time.time
+  }
+}
+```
+
+```qml {filename="Bar.qml"}
+import Quickshell
+
+Scope {
+  // no more time object
+
+  Variants {
+    variants: Quickshell.screens.map(screen => ({ screen }))
+
+    PanelWindow {
+      anchors {
+        top: true
+        left: true
+        right: true
+      }
+
+      height: 30
+
+      ClockWidget {
+        anchors.centerIn: parent
+
+        // no more time binding
+      }
+    }
+  }
+}
+```

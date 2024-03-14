@@ -679,12 +679,14 @@ QML Types can be easily made into a singleton, meaning there is only one instanc
 of the type.
 
 To make a type a singleton, put `pragma Singleton` at the top of the file.
+To ensure it behaves correctly with quickshell you should also make
+[Singleton](/docs/types/quickshell/singleton) the root item of your type.
 
 ```qml
 pragma Singleton
 import ...
 
-Item { ... }
+Singleton { ... }
 ```
 
 once a type is a singleton, its members can be accessed by name from neighboring
