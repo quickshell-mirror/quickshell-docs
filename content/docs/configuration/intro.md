@@ -517,11 +517,10 @@ ShellRoot {
 
 ## Multiple files
 
-In an example as small as this it isn't a problem, but as your project
-gets bigger you may become annoyed having everything all
-in one file. Luckily its easy to break a component out to a new file.
+In an example as small as this, it isn't a problem, but as the shell
+grows it might be prefferable to separate it into multiple files.
 
-Lets move the entire bar into a new file to make space for other widgets:
+To start with, let's move the entire bar into a new file.
 ```qml {filename="shell.qml"}
 import Quickshell
 
@@ -585,12 +584,11 @@ We can bring in other folders as well using
 [import statements](/docs/configuration/qml-overview/#explicit-imports).
 
 Now what about breaking out the clock? This is a bit more complex because
-the clock component in the bar and the process and timer that make up the actual
-clock both need to be dealt with.
+the clock component in the bar, as well as the process and timer that
+make up the actual clock, need to be dealt with.
 
-To start with let's move the clock to a new file. For now it's just a
-single `Text` object but the same concepts apply regardless of complexity
-(and you probably want a more complicated clock than this.)
+To start with, we can move the clock widget to a new file. For now it's just a
+single `Text` object but the same concepts apply regardless of complexity.
 
 ```qml {filename="ClockWidget.qml"}
 import QtQuick
@@ -725,7 +723,7 @@ Scope {
 
 Now you might be thinking, why do we need the `Time` type in
 our bar file, and the answer is we don't. We can make `Time`
-a [singleton](/docs/configuration/qml-overview/#singletons).
+a [Singleton](/docs/configuration/qml-overview/#singletons).
 
 A singleton object has only one instance, and is accessible from
 any scope.
