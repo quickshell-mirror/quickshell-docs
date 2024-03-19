@@ -798,12 +798,9 @@ it will not be updated further by the binding.
 
 Often not all of your interface needs to load immediately. By default the QML
 engine initializes every object in the scene before showing anything onscreen.
-For parts of the interface you don't need to load immediately, you should
-load them lazily to make your interface load faster.
-
-The [Loader](https://doc.qt.io/qt-6/qml-qtquick-loader.html) type can help with
-this, by loading in external files or creating components at runtime. Check its
-documentation for more information.
+For parts of the interface you don't need to be immediately visible, load them
+asynchronously using a [LazyLoader](/docs/types/quickshell/lazyloader).
+See its documentation for more information.
 
 #### Components
 
