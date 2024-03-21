@@ -1,6 +1,6 @@
 {{- $first := true -}}
-{{- range $param, $type := . -}}
+{{- range $param := . -}}
 	{{- if ne $first true -}}, {{ end -}}
 	{{- $first = false -}}
-	{{ $param }}: {{ partial "qmltype.html" $type }}
+	{{ $param.name }}: {{ partial "qmltype.html" $param.type }}
 {{- end -}}

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-	outform::{self, Flag, PropertyType},
+	outform::{self, Flag, Parameter, PropertyType},
 	typespec::{FnParam, Function, Property, Signal, TypeSpec},
 };
 
@@ -147,7 +147,8 @@ pub fn resolve_types(
 				ret: qmlparamtype(&func.ret, typespec),
 				name: func.name.clone(),
 				id: {
-					let params = func.params
+					let params = func
+						.params
 						.iter()
 						.map(|FnParam { type_, .. }| qmlparamtype(type_, typespec).name);
 
@@ -166,7 +167,10 @@ pub fn resolve_types(
 				params: func
 					.params
 					.iter()
-					.map(|FnParam { type_, name }| (name.clone(), qmlparamtype(type_, typespec)))
+					.map(|FnParam { type_, name }| Parameter {
+						name: name.clone(),
+						type_: qmlparamtype(type_, typespec),
+					})
 					.collect(),
 			}
 		}
@@ -178,7 +182,10 @@ pub fn resolve_types(
 				params: func
 					.params
 					.iter()
-					.map(|FnParam { type_, name }| (name.clone(), qmlparamtype(type_, typespec)))
+					.map(|FnParam { type_, name }| Parameter {
+						name: name.clone(),
+						type_: qmlparamtype(type_, typespec),
+					})
 					.collect(),
 			}
 		}

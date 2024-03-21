@@ -52,14 +52,21 @@ pub struct Function {
 	pub name: String,
 	pub id: String,
 	pub details: Option<String>,
-	pub params: HashMap<String, Type>,
+	pub params: Vec<Parameter>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct Signal {
 	pub name: String,
 	pub details: Option<String>,
-	pub params: HashMap<String, Type>,
+	pub params: Vec<Parameter>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct Parameter {
+	pub name: String,
+	#[serde(rename = "type")]
+	pub type_: Type,
 }
 
 #[derive(Debug, Serialize)]
