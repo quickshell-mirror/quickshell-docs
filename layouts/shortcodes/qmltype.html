@@ -85,11 +85,11 @@
 {{- if $type.functions -}}
 <h4>Functions</h4>
 <ul>
-	{{- range $funcname, $func := $type.functions -}}
+	{{- range $func := $type.functions -}}
 	<li>
 		<span class="typegray">
 			{{ partial "qmltype.html" $func.ret }}
-			<a href="#func.{{ $funcname }}">{{ $funcname }}</a>(
+			<a href="#func.{{ $func.id }}">{{ $func.name }}</a>(
 				{{- partial "qmlparams.html" $func.params -}}
 			)
 		</span>
@@ -172,8 +172,8 @@
 
 {{- if $type.functions -}}
 	<h3>Function Details</h3>
-	{{ range $funcname, $func := $type.functions }}
-		<div id="func.{{ $funcname }}" class = "qmlpropdef">
+	{{ range $func := $type.functions }}
+		<div id="func.{{ $func.id }}" class = "qmlpropdef">
 			{{- if $func.flags -}}
 				<span class="qmlprops typegray">
 					{{ partial "qmltypeflags.html" $func.flags }}
@@ -184,7 +184,7 @@
 				<span class="typegray">
 					{{ partial "qmltype.html" $func.ret -}}
 				</span>
-				{{ $funcname -}}
+				{{ $func.name -}}
 				<span class="typegray">(
 					{{- partial "qmlparams.html" $func.params -}}
 				)</span>

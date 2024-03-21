@@ -146,6 +146,22 @@ pub fn resolve_types(
 			outform::Function {
 				ret: qmlparamtype(&func.ret, typespec),
 				name: func.name.clone(),
+				id: {
+					let params = func.params
+						.iter()
+						.map(|FnParam { type_, .. }| qmlparamtype(type_, typespec).name);
+
+					let mut id = func.name.clone();
+					id.push('(');
+					for param in params {
+						id.push_str(&param);
+						id.push('_')
+					}
+					id.truncate(id.len() - 1);
+					id.push(')');
+
+					id
+				},
 				details: func.details.clone(),
 				params: func
 					.params
@@ -183,8 +199,8 @@ pub fn resolve_types(
 
 		let functions = functions
 			.iter()
-			.map(|func| (func.name.clone(), solvefunc(func, &typespec)))
-			.collect::<HashMap<_, _>>();
+			.map(|func| solvefunc(func, &typespec))
+			.collect::<Vec<_>>();
 
 		let signals = signals
 			.iter()

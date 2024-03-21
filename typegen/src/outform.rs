@@ -25,7 +25,7 @@ pub struct ClassInfo {
 	#[serde(skip_serializing_if = "Vec::is_empty")]
 	pub flags: Vec<Flag>,
 	pub properties: HashMap<String, Property>,
-	pub functions: HashMap<String, Function>,
+	pub functions: Vec<Function>,
 	pub signals: HashMap<String, Signal>,
 }
 
@@ -50,6 +50,7 @@ pub enum PropertyType {
 pub struct Function {
 	pub ret: Type,
 	pub name: String,
+	pub id: String,
 	pub details: Option<String>,
 	pub params: HashMap<String, Type>,
 }

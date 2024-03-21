@@ -26,6 +26,16 @@
 			"module": null
 		},
 		{
+			"name": "point",
+			"cname": "QPointF",
+			"module": null
+		},
+		{
+			"name": "rect",
+			"cname": "QRectF",
+			"module": null
+		},
+		{
 			"name": "string",
 			"cname": "QString",
 			"module": null
