@@ -41,11 +41,18 @@ pageRef = "/docs/types"
 weight = 2
 
 [[menu.main]]
-name = "Source ↗"
-url = "https://git.outfoxxed.me/outfoxxed/quickshell"
+name = "Search"
 weight = 3
+params.type = "search"
 
 [[menu.main]]
-name = "Search"
+name = "matrix"
+url = "https://matrix.to/#/#quickshell:outfoxxed.me"
 weight = 4
-params.type = "search"
+params.icon = "matrix"
+
+[[menu.main]]
+name = "git"
+url = "https://git.outfoxxed.me/outfoxxed/quickshell"
+weight = 5
+params.icon = "git"
