@@ -15,7 +15,7 @@ Notes:
 - Semicolons are permitted basically everywhere, and recommended in
 functions and expressions.
 - While types can often be elided, we recommend you use them where
-possible to catch proplems early instead of running into them unexpectedly layer on.
+possible to catch problems early instead of running into them unexpectedly later on.
 
 ```qml
 // QML Import statement

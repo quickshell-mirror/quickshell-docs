@@ -750,7 +750,7 @@ import QtQuick
 
 // your singletons should always have Singleton as the type
 Singleton {
-  property string time;
+  property string time
 
   Process {
     id: dateProc
@@ -814,6 +814,34 @@ Scope {
         // no more time binding
       }
     }
+  }
+}
+```
+
+## JavaScript APIs
+
+In addition to calling external processes, a [limited set of javascript interfaces] is available.
+We can use this to improve our clock by using the [Date API] instead of calling `date`.
+
+[limited set of javascript interfaces]: https://doc.qt.io/qt-6/qtqml-javascript-functionlist.html
+[Date API]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date
+
+```qml {filename="Time.qml"}
+pragma Singleton
+
+import Quickshell
+import Quickshell.Io
+import QtQuick
+
+Singleton {
+  property var date: new Date()
+  property string time: date.toLocaleString(Qt.locale())
+
+  Timer {
+    interval: 1000
+    running: true
+    repeat: true
+    onTriggered: date = new Date()
   }
 }
 ```
