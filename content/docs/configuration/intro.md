@@ -599,19 +599,13 @@ single `Text` object but the same concepts apply regardless of complexity.
 ```qml {filename="ClockWidget.qml"}
 import QtQuick
 
-// Item is a common base type for visual components
-Item {
-  // make a property the creator of this type is required to set
+Text {
+  // A property the creator of this type is required to set.
+  // Note that we could just set `text` instead, but don't because your
+  // clock probably will not be this simple.
   required property string time
 
-  // size the item to its children
-  width: childrenRect.width
-  height: childrenRect.height
-
-  // use the default property to contain the clock
-  Text {
-    text: time
-  }
+  text: time
 }
 ```
 
@@ -774,16 +768,11 @@ Singleton {
 ```qml {filename="ClockWidget.qml"}
 import QtQuick
 
-Item {
+Text {
   // we no longer need time as an input
 
-  width: childrenRect.width
-  height: childrenRect.height
-
-  Text {
-    // directly access the time property from the Time singleton
-    text: Time.time
-  }
+  // directly access the time property from the Time singleton
+  text: Time.time
 }
 ```
 
