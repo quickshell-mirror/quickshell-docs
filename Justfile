@@ -12,6 +12,10 @@ clean:
 	rm -rf content/docs/types/Quickshell.Io
 	rm -rf data/modules/Quickshell.Wayland
 	rm -rf content/docs/types/Quickshell.Wayland
+	rm -rf data/modules/Quickshell.DBusMenu
+	rm -rf content/docs/types/Quickshell.DBusMenu
+	rm -rf data/modules/Quickshell.Service.SystemTray
+	rm -rf content/docs/types/Quickshell.Service.SystemTray
 
 buildtypegen:
 	({{build_typegen}} && cd typegen && cargo build) || true
