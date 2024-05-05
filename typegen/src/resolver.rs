@@ -119,6 +119,10 @@ pub fn resolve_types(
 						list = true;
 					} else if ctype.starts_with("QList<") {
 						ctype = &ctype[6..ctype.len() - 1];
+						if ctype.ends_with('*') {
+							ctype = &ctype[0..ctype.len() - 1];
+						}
+
 						list = true;
 					}
 
