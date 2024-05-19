@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use anyhow::{anyhow, bail, Context};
-use regex::Regex;
+use fancy_regex::Regex;
 use serde::Deserialize;
 
 use crate::typespec;
@@ -45,6 +45,7 @@ pub struct ClassInfo<'a> {
 	pub properties: Vec<Property<'a>>,
 	pub invokables: Vec<Invokable<'a>>,
 	pub signals: Vec<Signal<'a>>,
+	pub enums: Vec<EnumInfo<'a>>,
 }
 
 #[derive(Debug)]
@@ -108,7 +109,8 @@ pub struct Parser {
 	pub signal_regex: Regex,
 	pub fn_param_regex: Regex,
 	pub defaultprop_classinfo_regex: Regex,
-	pub enum_regex: Regex,
+	pub enum_ns_regex: Regex,
+	pub enum_class_regex: Regex,
 	pub enum_variant_regex: Regex,
 }
 
@@ -130,16 +132,17 @@ impl Default for ParseContext<'_> {
 impl Parser {
 	pub fn new() -> Self {
 		Self {
-			class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*class\s+(?<name>\w+)(?:\s*:\s*public\s+(?<super>\w+)(\s*,(\s*\w+)*)*)?\s*\{(?<body>[\s\S]*?)};"#).unwrap(),
+			class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*class\s+(?<name>\w+)(?:\s*:\s*public\s+(?<super>\w+)(\s*,(\s*\w+)*)*)?\s*\{(?<body>[\s\S]*?)(?!};\s*Q_ENUM)};"#).unwrap(),
 			macro_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<hide>QSDOC_HIDE\s)?(?<type>(Q|QML|QSDOC)_\w+)\s*(\(\s*(?<args>.*)\s*\))?;"#).unwrap(),
 			property_regex: Regex::new(r#"^\s*(?<type>(\w|::|, |<|>|\*)+)\*?\s+(?<name>\w+)(\s+(MEMBER\s+(?<member>\w+)|READ\s+(?<read>\w+)|WRITE\s+(?<write>\w+)|NOTIFY\s+(?<notify>\w+)|(?<const>CONSTANT)))+\s*$"#).unwrap(),
-			fn_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*Q_INVOKABLE\s+(\[\[.*\]\]\s+)?(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)\((?<params>[\s\S]*?)\)(\s*const)?;"#).unwrap(),
+			fn_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*Q_INVOKABLE\s+(\[\[.*\]\]\s+)?(static\s+)?(?<type>(\w|::|<|>)+\*?)\s+(?<name>\w+)\((?<params>[\s\S]*?)\)(\s*const)?;"#).unwrap(),
 			signal_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*void\s+(?<name>\w+)\((?<params>[\s\S]*?)\);"#).unwrap(),
 			fn_param_regex: Regex::new(r#"(const\s+)?(?<type>(\w|::|<|>)+\*?)&?\s+(?<name>\w+)(,|$)"#).unwrap(),
 			signals_regex: Regex::new(r#"signals:(?<signals>(\s*(\s*///.*\s*)*void .*;)*)"#).unwrap(),
 			defaultprop_classinfo_regex: Regex::new(r#"^\s*"DefaultProperty", "(?<prop>.+)"\s*$"#).unwrap(),
-			enum_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*namespace (?<namespace>\w+)\s*\{[\s\S]*?(QML_ELEMENT|QML_NAMED_ELEMENT\((?<qml_name>\w+)\));[\s\S]*?enum\s*(?<enum_name>\w+)\s*\{(?<body>[\s\S]*?)\};[\s\S]*?\}"#).unwrap(),
-			enum_variant_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<name>\w+)\s*=\s*\d+,"#).unwrap(),
+			enum_ns_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*namespace (?<namespace>\w+)\s*\{[\s\S]*?(QML_ELEMENT|QML_NAMED_ELEMENT\((?<qml_name>\w+)\));[\s\S]*?enum\s*(?<enum_name>\w+)\s*\{(?<body>[\s\S]*?)\};[\s\S]*?\}"#).unwrap(),
+			enum_class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*enum\s*(?<enum_name>\w+)\s*\{(?<body>[\s\S]*?)\};\s+Q_ENUM\(.+\);"#).unwrap(),
+			enum_variant_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<name>\w+)\s*=\s*.+,"#).unwrap(),
 		}
 	}
 
@@ -149,6 +152,8 @@ impl Parser {
 		ctx: &mut ParseContext<'a>,
 	) -> anyhow::Result<()> {
 		for class in self.class_regex.captures_iter(text) {
+			let class = class?;
+
 			let comment = class.name("comment").map(|m| m.as_str());
 			let name = class.name("name").unwrap().as_str();
 			let mut superclass = class.name("super").map(|m| m.as_str());
@@ -163,9 +168,12 @@ impl Parser {
 			let mut invokables = Vec::new();
 			let mut notify_signals = Vec::new();
 			let mut signals = Vec::new();
+			let mut enums = Vec::new();
 
 			(|| {
 				for macro_ in self.macro_regex.captures_iter(body) {
+					let macro_ = macro_?;
+
 					if macro_.name("hide").is_some() {
 						continue
 					}
@@ -196,7 +204,7 @@ impl Parser {
 									self.property_regex
 										.captures(args.ok_or_else(|| {
 											anyhow!("expected args for Q_PROPERTY")
-										})?)
+										})?)?
 										.ok_or_else(|| anyhow!("unable to parse Q_PROPERTY"))?;
 
 								let member = prop.name("member").is_some();
@@ -220,7 +228,7 @@ impl Parser {
 							"Q_CLASSINFO" => {
 								let classinfo = self.defaultprop_classinfo_regex.captures(
 									args.ok_or_else(|| anyhow!("expected args for Q_CLASSINFO"))?,
-								);
+								)?;
 
 								if let Some(classinfo) = classinfo {
 									let prop = classinfo.name("prop").unwrap().as_str();
@@ -246,6 +254,8 @@ impl Parser {
 				}
 
 				for invokable in self.fn_regex.captures_iter(body) {
+					let invokable = invokable?;
+
 					let comment = invokable.name("comment").map(|m| m.as_str());
 					let type_ = invokable.name("type").unwrap().as_str();
 					let name = invokable.name("name").unwrap().as_str();
@@ -254,6 +264,8 @@ impl Parser {
 					let mut params = Vec::new();
 
 					for param in self.fn_param_regex.captures_iter(params_raw) {
+						let param = param?;
+
 						let type_ = param.name("type").unwrap().as_str();
 						let name = param.name("name").unwrap().as_str();
 
@@ -269,9 +281,13 @@ impl Parser {
 				}
 
 				for signal_set in self.signals_regex.captures_iter(body) {
+					let signal_set = signal_set?;
+
 					let signals_body = signal_set.name("signals").unwrap().as_str();
 
 					for signal in self.signal_regex.captures_iter(signals_body) {
+						let signal = signal?;
+
 						if signal.name("invokable").is_some() {
 							continue;
 						}
@@ -287,6 +303,8 @@ impl Parser {
 						let mut params = Vec::new();
 
 						for param in self.fn_param_regex.captures_iter(params_raw) {
+							let param = param?;
+
 							let type_ = param.name("type").unwrap().as_str();
 							let name = param.name("name").unwrap().as_str();
 
@@ -299,6 +317,23 @@ impl Parser {
 							params,
 						});
 					}
+				}
+
+				for enum_ in self.enum_class_regex.captures_iter(body) {
+					let enum_ = enum_?;
+
+					let comment = enum_.name("comment").map(|m| m.as_str());
+					let enum_name = enum_.name("enum_name").unwrap().as_str();
+					let body = enum_.name("body").unwrap().as_str();
+					let variants = self.parse_enum_variants(body)?;
+
+					enums.push(EnumInfo {
+						namespace: name,
+						enum_name,
+						qml_name: enum_name,
+						comment,
+						variants,
+					});
 				}
 
 				Ok::<_, anyhow::Error>(())
@@ -318,6 +353,7 @@ impl Parser {
 				properties,
 				invokables,
 				signals,
+				enums,
 			});
 		}
 
@@ -325,7 +361,9 @@ impl Parser {
 	}
 
 	pub fn parse_enums<'a>(&self, text: &'a str, ctx: &mut ParseContext<'a>) -> anyhow::Result<()> {
-		for enum_ in self.enum_regex.captures_iter(text) {
+		for enum_ in self.enum_ns_regex.captures_iter(text) {
+			let enum_ = enum_?;
+
 			let comment = enum_.name("comment").map(|m| m.as_str());
 			let namespace = enum_.name("namespace").unwrap().as_str();
 			let enum_name = enum_.name("enum_name").unwrap().as_str();
@@ -334,15 +372,7 @@ impl Parser {
 				.map(|m| m.as_str())
 				.unwrap_or(namespace);
 			let body = enum_.name("body").unwrap().as_str();
-
-			let mut variants = Vec::new();
-
-			for variant in self.enum_variant_regex.captures_iter(body) {
-				let comment = variant.name("comment").map(|m| m.as_str());
-				let name = variant.name("name").unwrap().as_str();
-
-				variants.push(Variant { name, comment });
-			}
+			let variants = self.parse_enum_variants(body)?;
 
 			ctx.enums.push(EnumInfo {
 				namespace,
@@ -354,6 +384,21 @@ impl Parser {
 		}
 
 		Ok(())
+	}
+
+	pub fn parse_enum_variants<'a>(&self, body: &'a str) -> anyhow::Result<Vec<Variant<'a>>> {
+		let mut variants = Vec::new();
+
+		for variant in self.enum_variant_regex.captures_iter(body) {
+			let variant = variant?;
+
+			let comment = variant.name("comment").map(|m| m.as_str());
+			let name = variant.name("name").unwrap().as_str();
+
+			variants.push(Variant { name, comment });
+		}
+
+		Ok(variants)
 	}
 
 	pub fn parse<'a>(&self, text: &'a str, ctx: &mut ParseContext<'a>) -> anyhow::Result<()> {
@@ -370,13 +415,28 @@ impl ParseContext<'_> {
 			typemap: self
 				.classes
 				.iter()
-				.filter_map(|class| {
-					Some(typespec::QmlTypeMapping {
+				.flat_map(|class| {
+					let Some(qmlname) = class.qml_name else { return Vec::new() };
+
+					let mut classes = Vec::new();
+					classes.push(typespec::QmlTypeMapping {
 						// filters gadgets
-						name: class.qml_name?.to_string(),
+						name: qmlname.to_string(),
 						cname: class.name.to_string(),
 						module: Some(module.to_string()),
-					})
+					});
+
+					// dirty hack to fix unknowns in resolution
+					if let Some(e) = class.enums.iter().find(|e| e.enum_name == "Enum") {
+						classes.push(typespec::QmlTypeMapping {
+							// filters gadgets
+							name: qmlname.to_string(),
+							cname: format!("{}::{}", e.namespace, e.enum_name),
+							module: Some(module.to_string()),
+						});
+					}
+
+					classes
 				})
 				.collect(),
 			classes: self
@@ -400,6 +460,28 @@ impl ParseContext<'_> {
 						properties: class.properties.iter().map(|p| (*p).into()).collect(),
 						functions: class.invokables.iter().map(|f| f.as_typespec()).collect(),
 						signals: class.signals.iter().map(|s| s.as_typespec()).collect(),
+						enums: class
+							.enums
+							.iter()
+							.map(|enum_| {
+								let (description, details) = enum_
+									.comment
+									.map(parse_details_desc)
+									.unwrap_or((None, None));
+
+								typespec::Enum {
+									name: enum_.qml_name.to_string(),
+									module: Some(module.to_string()),
+									cname: Some(format!(
+										"{}::{}",
+										enum_.namespace, enum_.enum_name
+									)),
+									description,
+									details,
+									varaints: enum_.variants.iter().map(|v| (*v).into()).collect(),
+								}
+							})
+							.collect(),
 					})
 				})
 				.collect(),

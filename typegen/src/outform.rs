@@ -27,6 +27,7 @@ pub struct ClassInfo {
 	pub properties: HashMap<String, Property>,
 	pub functions: Vec<Function>,
 	pub signals: HashMap<String, Signal>,
+	pub variants: HashMap<String, Variant>,
 }
 
 #[derive(Debug, Serialize)]
@@ -133,4 +134,5 @@ pub enum Flag {
 	Writeonly,
 	Singleton,
 	Uncreatable,
+	Enum,
 }

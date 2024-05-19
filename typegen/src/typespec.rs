@@ -38,6 +38,7 @@ pub struct Class {
 	pub properties: Vec<Property>,
 	pub functions: Vec<Function>,
 	pub signals: Vec<Signal>,
+	pub enums: Vec<Enum>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

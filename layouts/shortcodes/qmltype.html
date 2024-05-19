@@ -53,6 +53,19 @@
 	{{ if $type.details -}} <a href="#details">More</a> {{- end -}}
 {{- end -}}
 
+{{- if $type.variants -}}
+<h4>Variants</h4>
+<ul>
+	{{- range $name, $variant := $type.variants -}}
+	<li>
+		<span class="typegray">
+			<a href="#variant.{{ $name }}">{{ $name }}</a>
+		</span>
+	</li>
+	{{- end -}}
+</ul>
+{{- end -}}
+
 {{- if $type.properties -}}
 <h4>Properties</h4>
 <ul>
@@ -113,22 +126,26 @@
 </ul>
 {{- end -}}
 
-{{- if $type.variants -}}
-<h4>Variants</h4>
-<ul>
-	{{- range $name, $variant := $type.variants -}}
-	<li>
-		<span class="typegray">
-			<a href="#variant.{{ $name }}">{{ $name }}</a>
-		</span>
-	</li>
-	{{- end -}}
-</ul>
-{{- end -}}
-
 {{- if $type.details -}}
 	<h3 id="details">Detailed Description</h3>
 	{{- $type.details | $.Page.RenderString (dict "display" "block") -}}
+{{- end -}}
+
+{{- if $type.variants -}}
+	<h3>Variant Details</h3>
+	{{ range $name, $variant := $type.variants }}
+		<div id="variant.{{ $name }}" class = "qmlpropdef">
+			<p>{{ $name -}}</p>
+		</div>
+
+		<div class="qmlpropdetails">
+			{{- if $variant.details -}}
+				{{- $variant.details | $.Page.RenderString (dict "display" "block") -}}
+			{{- else -}}
+				<p style="color: #999999"><i>No details provided.</i></p>
+			{{- end -}}
+		</div>
+	{{- end -}}
 {{- end -}}
 
 {{- if $type.properties -}}
@@ -222,23 +239,6 @@
 		<div class="qmlpropdetails">
 			{{- if $sig.details -}}
 				{{- $sig.details | $.Page.RenderString (dict "display" "block") -}}
-			{{- else -}}
-				<p style="color: #999999"><i>No details provided.</i></p>
-			{{- end -}}
-		</div>
-	{{- end -}}
-{{- end -}}
-
-{{- if $type.variants -}}
-	<h3>Variant Details</h3>
-	{{ range $name, $variant := $type.variants }}
-		<div id="variant.{{ $name }}" class = "qmlpropdef">
-			<p>{{ $name -}}</p>
-		</div>
-
-		<div class="qmlpropdetails">
-			{{- if $variant.details -}}
-				{{- $variant.details | $.Page.RenderString (dict "display" "block") -}}
 			{{- else -}}
 				<p style="color: #999999"><i>No details provided.</i></p>
 			{{- end -}}

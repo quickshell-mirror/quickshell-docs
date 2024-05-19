@@ -21,8 +21,18 @@
 			"module": null
 		},
 		{
+			"name": "int",
+			"cname": "quint32",
+			"module": null
+		},
+		{
 			"name": "real",
 			"cname": "qreal",
+			"module": null
+		},
+		{
+			"name": "real",
+			"cname": "float",
 			"module": null
 		},
 		{

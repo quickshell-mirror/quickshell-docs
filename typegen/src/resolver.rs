@@ -119,11 +119,14 @@ pub fn resolve_types(
 						list = true;
 					} else if ctype.starts_with("QList<") {
 						ctype = &ctype[6..ctype.len() - 1];
-						if ctype.ends_with('*') {
-							ctype = &ctype[0..ctype.len() - 1];
-						}
-
 						list = true;
+					} else if ctype.starts_with("QVector<") {
+						ctype = &ctype[8..ctype.len() - 1];
+						list = true;
+					}
+
+					if ctype.ends_with('*') {
+						ctype = &ctype[0..ctype.len() - 1];
 					}
 
 					let mut type_ = qmlparamtype(ctype, typespec);
@@ -218,6 +221,20 @@ pub fn resolve_types(
 			.map(|signal| (signal.name.clone(), solvesignal(signal, &typespec)))
 			.collect::<HashMap<_, _>>();
 
+		let coreenum = class.enums.iter().find(|e| e.name == "Enum");
+		let variants = match coreenum {
+			Some(e) => e
+				.varaints
+				.iter()
+				.map(|variant| {
+					(variant.name.clone(), outform::Variant {
+						details: variant.details.clone(),
+					})
+				})
+				.collect(),
+			None => HashMap::new(),
+		};
+
 		let type_ = outform::ClassInfo {
 			superclass,
 			description: class.description.clone(),
@@ -225,7 +242,9 @@ pub fn resolve_types(
 			flags: {
 				let mut flags = Vec::new();
 
-				if class.singleton {
+				if coreenum.is_some() {
+					flags.push(Flag::Enum);
+				} else if class.singleton {
 					flags.push(Flag::Singleton);
 				} else if class.uncreatable {
 					flags.push(Flag::Uncreatable);
@@ -236,6 +255,7 @@ pub fn resolve_types(
 			properties,
 			functions,
 			signals,
+			variants,
 		};
 
 		outtypes.insert(mapping.name.clone(), outform::TypeInfo::Class(type_));
