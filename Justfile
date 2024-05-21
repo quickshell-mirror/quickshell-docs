@@ -18,6 +18,8 @@ clean:
 	rm -rf content/docs/types/Quickshell.Services.SystemTray
 	rm -rf data/modules/Quickshell.Services.PipeWire
 	rm -rf content/docs/types/Quickshell.Services.PipeWire
+	rm -rf data/modules/Quickshell.Services.Mpris
+	rm -rf content/docs/types/Quickshell.Services.Mpris
 	rm -rf data/modules/Quickshell.Hyprland
 	rm -rf content/docs/types/Quickshell.Hyprland
 
@@ -32,6 +34,7 @@ typedocs: clean buildtypegen
 	{{typegen_bin}} gentypes {{src_path}}/dbus/dbusmenu/module.md build/types/types/Quickshell.DBusMenu.json
 	{{typegen_bin}} gentypes {{src_path}}/services/status_notifier/module.md build/types/types/Quickshell.Services.SystemTray.json
 	{{typegen_bin}} gentypes {{src_path}}/services/pipewire/module.md build/types/types/Quickshell.Services.PipeWire.json
+	{{typegen_bin}} gentypes {{src_path}}/services/mpris/module.md build/types/types/Quickshell.Services.Mpris.json
 	{{typegen_bin}} gentypes {{src_path}}/wayland/hyprland/module.md build/types/types/Quickshell.Hyprland.json
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/core/module.md data/modules/Quickshell content/docs/types/Quickshell types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/io/module.md data/modules/Quickshell.Io content/docs/types/Quickshell.Io types/* build/types/types/*'
@@ -39,6 +42,7 @@ typedocs: clean buildtypegen
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/dbus/dbusmenu/module.md data/modules/Quickshell.DBusMenu content/docs/types/Quickshell.DBusMenu types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/services/status_notifier/module.md data/modules/Quickshell.Services.SystemTray content/docs/types/Quickshell.Services.SystemTray types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/services/pipewire/module.md data/modules/Quickshell.Services.PipeWire content/docs/types/Quickshell.Services.PipeWire types/* build/types/types/*'
+	sh -c '{{typegen_bin}} gendocs {{src_path}}/services/mpris/module.md data/modules/Quickshell.Services.Mpris content/docs/types/Quickshell.Services.Mpris types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/wayland/hyprland/module.md data/modules/Quickshell.Hyprland content/docs/types/Quickshell.Hyprland types/* build/types/types/*'
 
 serve: typedocs
