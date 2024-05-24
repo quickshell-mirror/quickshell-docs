@@ -56,7 +56,11 @@ pub fn resolve_types(
 			}
 		};
 
-		fn qmlparamtype(ctype: &str, typespec: &TypeSpec) -> outform::Type {
+		fn qmlparamtype(mut ctype: &str, typespec: &TypeSpec) -> outform::Type {
+			if ctype.ends_with('*') {
+				ctype = &ctype[0..ctype.len() - 1];
+			}
+
 			let qtype = typespec
 				.typemap
 				.iter()
@@ -79,7 +83,7 @@ pub fn resolve_types(
 		}
 
 		fn solveprop(prop: &Property, typespec: &TypeSpec) -> outform::Property {
-			let mut ctype = &prop.type_[..];
+			let ctype = &prop.type_[..];
 
 			let flags = {
 				let mut flags = Vec::new();
@@ -112,32 +116,24 @@ pub fn resolve_types(
 					flags,
 				},
 				None => {
-					let mut list = false;
+					let (ctype, of) = match ctype.split_once('<') {
+						None => (ctype, None),
+						Some((ctype, mut remaining)) => {
+							if remaining.ends_with('*') {
+								remaining = &remaining[0..remaining.len() - 1];
+							}
 
-					if ctype.starts_with("QQmlListProperty<") {
-						ctype = &ctype[17..ctype.len() - 1];
-						list = true;
-					} else if ctype.starts_with("QList<") {
-						ctype = &ctype[6..ctype.len() - 1];
-						list = true;
-					} else if ctype.starts_with("QVector<") {
-						ctype = &ctype[8..ctype.len() - 1];
-						list = true;
-					}
+							// closing `>`
+							remaining = &remaining[0..remaining.len() - 1];
 
-					if ctype.ends_with('*') {
-						ctype = &ctype[0..ctype.len() - 1];
-					}
+							(ctype, Some(remaining))
+						},
+					};
 
 					let mut type_ = qmlparamtype(ctype, typespec);
 
-					if list {
-						type_ = outform::Type {
-							type_: outform::TypeSource::Qt,
-							module: "qml".to_string(),
-							name: "list".to_string(),
-							of: Some(Box::new(type_)),
-						};
+					if let Some(of) = of {
+						type_.of = Some(Box::new(qmlparamtype(of, typespec)));
 					}
 
 					outform::Property {

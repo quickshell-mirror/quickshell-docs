@@ -155,7 +155,7 @@ impl Parser {
 			let class = class?;
 
 			let comment = class.name("comment").map(|m| m.as_str());
-			let name = class.name("name").unwrap().as_str();
+			let mut name = class.name("name").unwrap().as_str();
 			let mut superclass = class.name("super").map(|m| m.as_str());
 			let body = class.name("body").unwrap().as_str();
 
@@ -188,6 +188,10 @@ impl Parser {
 								superclass = Some(args.expect(
 									"QSDOC_BASECLASS must have the base class as an argument",
 								))
+							},
+							"QSDOC_CNAME" => {
+								name = args
+									.expect("QSDOC_CNAME must specify the cname as an argument");
 							},
 							"Q_OBJECT" => classtype = Some(ClassType::Object),
 							"Q_GADGET" => classtype = Some(ClassType::Gadget),

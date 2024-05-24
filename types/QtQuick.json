@@ -26,6 +26,11 @@
 			"module": null
 		},
 		{
+			"name": "int",
+			"cname": "qsizetype",
+			"module": null
+		},
+		{
 			"name": "real",
 			"cname": "qreal",
 			"module": null
@@ -59,6 +64,21 @@
 			"name": "QtObject",
 			"cname": "QObject",
 			"module": "qml.QtQml"
+		},
+		{
+			"name": "list",
+			"cname": "QQmlListProperty",
+			"module": null
+		},
+		{
+			"name": "list",
+			"cname": "QList",
+			"module": null
+		},
+		{
+			"name": "list",
+			"cname": "QVector",
+			"module": null
 		},
 		{
 			"name": "Component",
