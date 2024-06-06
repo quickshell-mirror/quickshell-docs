@@ -56,7 +56,23 @@ pub fn resolve_types(
 			}
 		};
 
-		fn qmlparamtype(mut ctype: &str, typespec: &TypeSpec) -> outform::Type {
+		fn qmlparamtype(ctype: &str, typespec: &TypeSpec) -> outform::Type {
+			let (mut ctype, of) = match ctype.split_once('<') {
+				None => (ctype, None),
+				Some((ctype, mut remaining)) => {
+					if remaining.ends_with('*') {
+						remaining = &remaining[0..remaining.len() - 1];
+					}
+
+					// closing `>`
+					remaining = &remaining[0..remaining.len() - 1];
+
+					let of = Box::new(qmlparamtype(remaining, typespec));
+
+					(ctype, Some(of))
+				},
+			};
+
 			if ctype.ends_with('*') {
 				ctype = &ctype[0..ctype.len() - 1];
 			}
@@ -76,7 +92,9 @@ pub fn resolve_types(
 
 			match qtype {
 				Some((module, name)) => {
-					outform::Type::resolve(module.as_ref().map(|v| v as &str), &name)
+					let mut t = outform::Type::resolve(module.as_ref().map(|v| v as &str), &name);
+					t.of = of;
+					t
 				},
 				None => outform::Type::unknown(),
 			}
@@ -115,32 +133,10 @@ pub fn resolve_types(
 					details: prop.details.clone(),
 					flags,
 				},
-				None => {
-					let (ctype, of) = match ctype.split_once('<') {
-						None => (ctype, None),
-						Some((ctype, mut remaining)) => {
-							if remaining.ends_with('*') {
-								remaining = &remaining[0..remaining.len() - 1];
-							}
-
-							// closing `>`
-							remaining = &remaining[0..remaining.len() - 1];
-
-							(ctype, Some(remaining))
-						},
-					};
-
-					let mut type_ = qmlparamtype(ctype, typespec);
-
-					if let Some(of) = of {
-						type_.of = Some(Box::new(qmlparamtype(of, typespec)));
-					}
-
-					outform::Property {
-						type_: PropertyType::Type(type_),
-						details: prop.details.clone(),
-						flags,
-					}
+				None => outform::Property {
+					type_: PropertyType::Type(qmlparamtype(ctype, typespec)),
+					details: prop.details.clone(),
+					flags,
 				},
 			}
 		}
