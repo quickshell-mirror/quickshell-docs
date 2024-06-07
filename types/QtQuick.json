@@ -47,6 +47,11 @@
 		},
 		{
 			"name": "rect",
+			"cname": "QRect",
+			"module": null
+		},
+		{
+			"name": "rect",
 			"cname": "QRectF",
 			"module": null
 		},

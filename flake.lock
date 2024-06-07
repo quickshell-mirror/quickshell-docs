@@ -22,11 +22,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1717640780,
-        "narHash": "sha256-zTOH+o/eCQy9uB5aZ0QT+jA867fiike8QFBo7g7cK/c=",
+        "lastModified": 1717759880,
+        "narHash": "sha256-JBsGdxRbQrrtM6ykaS9vflMNjb+M6tNRx4JZJ0PEsis=",
         "ref": "refs/heads/master",
-        "rev": "d14ca709849ba0a0e3de5126b77cfc7819c9b100",
-        "revCount": 205,
+        "rev": "b5b9c1f6c352f5e495f580618f5d176497f7814b",
+        "revCount": 209,
         "type": "git",
         "url": "https://git.outfoxxed.me/outfoxxed/quickshell"
       },
