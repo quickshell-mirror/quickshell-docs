@@ -236,7 +236,7 @@ you supply. (A component is a re-usable tree of objects.)
 The most common use of `Variants` in a shell is to create instances of
 a window (your bar) based on your monitor list (the data model).
 
-Variants will inject the properties in the data model directly into each new
+Variants will inject the values in the data model into each new
 component's `modelData` property, which means we can easily pass each screen
 to its own component.
 (See [Window.screen](/docs/types/quickshell/qswindow/#prop.screen).)
@@ -456,7 +456,7 @@ component wrapping the window and place the window directly into the
 `delegate` property.
 2. The [Variants.delegate](/docs/types/quickshell/variants/#prop.delegate)
 property is a [Default Property](/docs/configuration/qml-overview/#the-default-property),
-which means we can skip the `component: ` part of the assignment.
+which means we can skip the `delegate: ` part of the assignment.
 We're already using [ShellRoot](/docs/types/quickshell/shellroot/)'s
 default property to store our Variants, Process, and Timer components
 among other things.
