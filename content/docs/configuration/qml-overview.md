@@ -536,6 +536,29 @@ ColumnLayout {
 }
 ```
 
+##### Indirect signal handlers
+When it is not possible or not convenient to directly define a signal handler, before resorting
+to `.connect`ing the properties, a [Connections] object can be used to access them.
+
+This is especially useful to connect to signals of singletons.
+
+```qml
+Item {
+  Button {
+    id: myButton
+    text "click me"
+  }
+
+  Connections {
+    target: myButton
+
+    function onClicked() {
+      // ...
+    }
+  }
+}
+```
+
 ##### Property change signals
 Every property has an associated signal, which powers QML's [reactive bindings](#reactive-bindings).
 The signal is named `<propertyname>Changed` and works exactly the same as any other signal.
