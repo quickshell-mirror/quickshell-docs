@@ -16,8 +16,8 @@ clean:
 	rm -rf content/docs/types/Quickshell.DBusMenu
 	rm -rf data/modules/Quickshell.Services.SystemTray
 	rm -rf content/docs/types/Quickshell.Services.SystemTray
-	rm -rf data/modules/Quickshell.Services.PipeWire
-	rm -rf content/docs/types/Quickshell.Services.PipeWire
+	rm -rf data/modules/Quickshell.Services.Pipewire
+	rm -rf content/docs/types/Quickshell.Services.Pipewire
 	rm -rf data/modules/Quickshell.Services.Mpris
 	rm -rf content/docs/types/Quickshell.Services.Mpris
 	rm -rf data/modules/Quickshell.Services.Pam
@@ -37,7 +37,7 @@ typedocs: clean buildtypegen
 	{{typegen_bin}} gentypes {{src_path}}/wayland/module.md build/types/types/Quickshell.Wayland.json
 	{{typegen_bin}} gentypes {{src_path}}/dbus/dbusmenu/module.md build/types/types/Quickshell.DBusMenu.json
 	{{typegen_bin}} gentypes {{src_path}}/services/status_notifier/module.md build/types/types/Quickshell.Services.SystemTray.json
-	{{typegen_bin}} gentypes {{src_path}}/services/pipewire/module.md build/types/types/Quickshell.Services.PipeWire.json
+	{{typegen_bin}} gentypes {{src_path}}/services/pipewire/module.md build/types/types/Quickshell.Services.Pipewire.json
 	{{typegen_bin}} gentypes {{src_path}}/services/mpris/module.md build/types/types/Quickshell.Services.Mpris.json
 	{{typegen_bin}} gentypes {{src_path}}/services/pam/module.md build/types/types/Quickshell.Services.Pam.json
 	{{typegen_bin}} gentypes {{src_path}}/services/greetd/module.md build/types/types/Quickshell.Services.Greetd.json
@@ -47,7 +47,7 @@ typedocs: clean buildtypegen
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/wayland/module.md data/modules/Quickshell.Wayland content/docs/types/Quickshell.Wayland types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/dbus/dbusmenu/module.md data/modules/Quickshell.DBusMenu content/docs/types/Quickshell.DBusMenu types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/services/status_notifier/module.md data/modules/Quickshell.Services.SystemTray content/docs/types/Quickshell.Services.SystemTray types/* build/types/types/*'
-	sh -c '{{typegen_bin}} gendocs {{src_path}}/services/pipewire/module.md data/modules/Quickshell.Services.PipeWire content/docs/types/Quickshell.Services.PipeWire types/* build/types/types/*'
+	sh -c '{{typegen_bin}} gendocs {{src_path}}/services/pipewire/module.md data/modules/Quickshell.Services.Pipewire content/docs/types/Quickshell.Services.Pipewire types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/services/mpris/module.md data/modules/Quickshell.Services.Mpris content/docs/types/Quickshell.Services.Mpris types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/services/pam/module.md data/modules/Quickshell.Services.Pam content/docs/types/Quickshell.Services.Pam types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/services/greetd/module.md data/modules/Quickshell.Services.Greetd content/docs/types/Quickshell.Services.Greetd types/* build/types/types/*'
