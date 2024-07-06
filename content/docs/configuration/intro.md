@@ -224,7 +224,7 @@ If you have multiple monitors you might have noticed that your bar
 is only on one of them. If not, you'll still want to **follow this section
 to make sure your bar dosen't disappear if your monitor disconnects**.
 
-We can use a [Variants](http://localhost:1313/docs/types/quickshell/variants/)
+We can use a [Variants](/docs/types/quickshell/variants)
 object to create instances of *non widget items*.
 (See [Repeater](https://doc.qt.io/qt-6/qml-qtquick-repeater.html) for doing
 something similar with visual items.)
