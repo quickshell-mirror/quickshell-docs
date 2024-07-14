@@ -36,7 +36,8 @@ fn main() -> anyhow::Result<()> {
 				.collect::<Result<HashMap<_, _>, _>>()?;
 
 			let parser = parse::Parser::new();
-			let mut ctx = parse::ParseContext::default();
+			let mut ctx = parse::ParseContext::new(&module.header.name);
+
 			texts
 				.iter()
 				.map(|(header, text)| {

@@ -33,6 +33,18 @@ pub fn parse_module(text: &str) -> anyhow::Result<ModuleInfo> {
 	Ok(ModuleInfo { header, details })
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct Comment<'a> {
+	pub text: &'a str,
+	pub module: &'a str,
+}
+
+impl<'a> Comment<'a> {
+	fn new(text: &'a str, module: &'a str) -> Self {
+		Self { text, module }
+	}
+}
+
 #[derive(Debug)]
 pub struct ClassInfo<'a> {
 	pub type_: ClassType,
@@ -41,7 +53,7 @@ pub struct ClassInfo<'a> {
 	pub superclass: Option<&'a str>,
 	pub singleton: bool,
 	pub uncreatable: bool,
-	pub comment: Option<&'a str>,
+	pub comment: Option<Comment<'a>>,
 	pub properties: Vec<Property<'a>>,
 	pub invokables: Vec<Invokable<'a>>,
 	pub signals: Vec<Signal<'a>>,
@@ -58,7 +70,7 @@ pub enum ClassType {
 pub struct Property<'a> {
 	pub type_: &'a str,
 	pub name: &'a str,
-	pub comment: Option<&'a str>,
+	pub comment: Option<Comment<'a>>,
 	pub readable: bool,
 	pub writable: bool,
 	pub default: bool,
@@ -68,14 +80,14 @@ pub struct Property<'a> {
 pub struct Invokable<'a> {
 	pub name: &'a str,
 	pub ret: &'a str,
-	pub comment: Option<&'a str>,
+	pub comment: Option<Comment<'a>>,
 	pub params: Vec<InvokableParam<'a>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Signal<'a> {
 	pub name: &'a str,
-	pub comment: Option<&'a str>,
+	pub comment: Option<Comment<'a>>,
 	pub params: Vec<InvokableParam<'a>>,
 }
 
@@ -90,14 +102,14 @@ pub struct EnumInfo<'a> {
 	pub namespace: &'a str,
 	pub enum_name: &'a str,
 	pub qml_name: &'a str,
-	pub comment: Option<&'a str>,
+	pub comment: Option<Comment<'a>>,
 	pub variants: Vec<Variant<'a>>,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Variant<'a> {
 	pub name: &'a str,
-	pub comment: Option<&'a str>,
+	pub comment: Option<Comment<'a>>,
 }
 
 pub struct Parser {
@@ -116,13 +128,15 @@ pub struct Parser {
 
 #[derive(Debug)]
 pub struct ParseContext<'a> {
+	pub module: &'a str,
 	pub classes: Vec<ClassInfo<'a>>,
 	pub enums: Vec<EnumInfo<'a>>,
 }
 
-impl Default for ParseContext<'_> {
-	fn default() -> Self {
+impl<'a> ParseContext<'a> {
+	pub fn new(module: &'a str) -> Self {
 		Self {
+			module,
 			classes: Vec::new(),
 			enums: Vec::new(),
 		}
@@ -223,7 +237,7 @@ impl Parser {
 								properties.push(Property {
 									type_: prop.name("type").unwrap().as_str(),
 									name: prop.name("name").unwrap().as_str(),
-									comment,
+									comment: comment.map(|v| Comment::new(v, ctx.module)),
 									readable: read || member,
 									writable: !constant && (write || member),
 									default: false,
@@ -279,7 +293,7 @@ impl Parser {
 					invokables.push(Invokable {
 						name,
 						ret: type_,
-						comment,
+						comment: comment.map(|v| Comment::new(v, ctx.module)),
 						params,
 					});
 				}
@@ -317,7 +331,7 @@ impl Parser {
 
 						signals.push(Signal {
 							name,
-							comment,
+							comment: comment.map(|v| Comment::new(v, ctx.module)),
 							params,
 						});
 					}
@@ -329,13 +343,13 @@ impl Parser {
 					let comment = enum_.name("comment").map(|m| m.as_str());
 					let enum_name = enum_.name("enum_name").unwrap().as_str();
 					let body = enum_.name("body").unwrap().as_str();
-					let variants = self.parse_enum_variants(body)?;
+					let variants = self.parse_enum_variants(body, ctx)?;
 
 					enums.push(EnumInfo {
 						namespace: name,
 						enum_name,
 						qml_name: enum_name,
-						comment,
+						comment: comment.map(|v| Comment::new(v, ctx.module)),
 						variants,
 					});
 				}
@@ -353,7 +367,7 @@ impl Parser {
 				superclass,
 				singleton,
 				uncreatable,
-				comment,
+				comment: comment.map(|v| Comment::new(v, ctx.module)),
 				properties,
 				invokables,
 				signals,
@@ -376,13 +390,13 @@ impl Parser {
 				.map(|m| m.as_str())
 				.unwrap_or(namespace);
 			let body = enum_.name("body").unwrap().as_str();
-			let variants = self.parse_enum_variants(body)?;
+			let variants = self.parse_enum_variants(body, ctx)?;
 
 			ctx.enums.push(EnumInfo {
 				namespace,
 				enum_name,
 				qml_name,
-				comment,
+				comment: comment.map(|v| Comment::new(v, ctx.module)),
 				variants,
 			});
 		}
@@ -390,7 +404,11 @@ impl Parser {
 		Ok(())
 	}
 
-	pub fn parse_enum_variants<'a>(&self, body: &'a str) -> anyhow::Result<Vec<Variant<'a>>> {
+	pub fn parse_enum_variants<'a>(
+		&self,
+		body: &'a str,
+		ctx: &ParseContext<'a>,
+	) -> anyhow::Result<Vec<Variant<'a>>> {
 		let mut variants = Vec::new();
 
 		for variant in self.enum_variant_regex.captures_iter(body) {
@@ -399,7 +417,10 @@ impl Parser {
 			let comment = variant.name("comment").map(|m| m.as_str());
 			let name = variant.name("name").unwrap().as_str();
 
-			variants.push(Variant { name, comment });
+			variants.push(Variant {
+				name,
+				comment: comment.map(|v| Comment::new(v, ctx.module)),
+			});
 		}
 
 		Ok(variants)
@@ -575,11 +596,12 @@ impl From<InvokableParam<'_>> for typespec::FnParam {
 	}
 }
 
-fn parse_details(text: &str) -> String {
+fn parse_details(comment: Comment) -> String {
 	let mut seen_content = false;
 	let mut callout = false;
 
-	let mut str = text
+	let mut str = comment
+		.text
 		.lines()
 		.map(|line| {
 			line.trim()
@@ -616,6 +638,63 @@ fn parse_details(text: &str) -> String {
 				return Cow::Borrowed(line);
 			},
 		})
+		.map(|line| {
+			if line.contains("@@") {
+				let mut src: &str = &*line;
+				let mut accum = String::new();
+
+				while let Some(i) = src.find("@@") {
+					accum += &src[..i];
+					src = &src[i + 2..];
+
+					let endmk = src.find('$');
+					let endsp = src.find(' ');
+
+					let (end, ty) = match (endmk, endsp) {
+						(Some(i), _) if i < endsp.unwrap_or(usize::MAX) => (i + 1, &src[..i]),
+						(_, Some(i)) => (i, &src[..i]),
+						_ => (src.len(), src),
+					};
+
+					let mut split = ty.rsplit_once('.').unwrap_or(("", ty));
+
+					let prop = split
+						.1
+						.chars()
+						.next()
+						.unwrap()
+						.is_lowercase()
+						.then(|| {
+							let prop = split.1;
+							split = split.0.rsplit_once('.').unwrap_or(("", split.0));
+							prop
+						})
+						.unwrap_or("");
+
+					let (mut module, name) = split;
+
+					if module.is_empty() {
+						module = comment.module;
+					}
+
+					let (linktype, module) = match module.starts_with("Quickshell") {
+						true => ("local", module.to_string()),
+						false => ("qt", format!("qml.{module}")),
+					};
+
+					accum += &format!(
+						r#"{{{{< qmltypelink type="{linktype}" module="{module}" name="{name}" prop="{prop}" >}}}}"#
+					);
+					src = &src[end..];
+				}
+
+				accum += src;
+
+				return Cow::Owned(accum);
+			} else {
+				return line;
+			}
+		})
 		.fold(String::new(), |accum, line| accum + line.as_ref() + "\n");
 
 	if callout {
@@ -625,8 +704,8 @@ fn parse_details(text: &str) -> String {
 	str
 }
 
-fn parse_details_desc(text: &str) -> (Option<String>, Option<String>) {
-	let details = parse_details(text);
+fn parse_details_desc(comment: Comment) -> (Option<String>, Option<String>) {
+	let details = parse_details(comment);
 	if details.starts_with('!') {
 		match details[1..].split_once('\n') {
 			Some((desc, details)) => (

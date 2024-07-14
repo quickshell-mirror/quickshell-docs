@@ -13,5 +13,16 @@
 		{{- $of = printf "&lt;%s&gt;" (partial "qmltype.html" .of) }}
 	{{- end -}}
 
-	<a href="{{ $link }}">{{ .name }}</a>{{ $of | safeHTML -}}
+	{{- $member := "" -}}
+
+	{{- if .prop -}}
+		{{- $member = printf ".%s" .prop -}}
+		{{- if eq .type "qt" -}}
+			{{- $link = printf "%s#%s-prop" $link .prop -}}
+		{{- else if eq .type "local" -}}
+			{{- $link = printf "%s#prop.%s" $link .prop -}}
+		{{- end -}}
+	{{- end -}}
+
+	<a href="{{ $link }}">{{ .name }}{{ $member }}</a>{{ $of | safeHTML -}}
 {{- end -}}
