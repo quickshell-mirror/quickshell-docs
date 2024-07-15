@@ -1,7 +1,12 @@
 {{- $modulename := .Get "module" -}}
 {{- $module := index .Site.Data.modules $modulename -}}
+
+<h1>{{ $modulename }}<span class="qmlprops typegray" style="font-weight: normal">[module]</span></h1>
+
 {{- $module.index.description | $.Page.RenderString (dict "display" "block") -}}
+
 <h3>Types</h3>
+
 <table>
 	{{- range $name, $type := $module -}}
 		{{- if ne $name "index" -}}

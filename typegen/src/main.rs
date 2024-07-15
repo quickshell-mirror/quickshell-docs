@@ -119,6 +119,7 @@ hidetitle = true
 			let template = format!(
 				"+++
 title = \"{name}\"
+hidetitle = true
 +++
 
 {{{{< qmlmodule module=\"{name}\" >}}}}
