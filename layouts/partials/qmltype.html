@@ -22,6 +22,20 @@
 		{{- else if eq .type "local" -}}
 			{{- $link = printf "%s#prop.%s" $link .prop -}}
 		{{- end -}}
+	{{- else if .func -}}
+		{{- $member = printf ".%s()" .func -}}
+		{{- if eq .type "qt" -}}
+			{{- $link = printf "%s#%s-method" $link .func -}}
+		{{- else if eq .type "local" -}}
+			{{- $link = printf "%s#func.%s" $link .func -}}
+		{{- end -}}
+	{{- else if .signal -}}
+		{{- $member = printf ".%s()" .signal -}}
+		{{- if eq .type "qt" -}}
+			{{- $link = printf "%s#%s-signal" $link .signal -}}
+		{{- else if eq .type "local" -}}
+			{{- $link = printf "%s#signal.%s" $link .signal -}}
+		{{- end -}}
 	{{- end -}}
 
 	<a href="{{ $link }}">{{ .name }}{{ $member }}</a>{{ $of | safeHTML -}}

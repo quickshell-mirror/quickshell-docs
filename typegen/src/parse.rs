@@ -658,7 +658,7 @@ fn parse_details(comment: Comment) -> String {
 
 					let mut split = ty.rsplit_once('.').unwrap_or(("", ty));
 
-					let prop = split
+					let member = split
 						.1
 						.chars()
 						.next()
@@ -670,6 +670,12 @@ fn parse_details(comment: Comment) -> String {
 							prop
 						})
 						.unwrap_or("");
+
+					let (prop, func, signal) = match member {
+						name if name.ends_with("()") => ("", &name[..name.len() - 2], ""),
+						name if name.ends_with("(s)") => ("", "", &name[..name.len() - 3]),
+						name => (name, "", ""),
+					};
 
 					let (mut module, name) = split;
 
@@ -683,7 +689,7 @@ fn parse_details(comment: Comment) -> String {
 					};
 
 					accum += &format!(
-						r#"{{{{< qmltypelink type="{linktype}" module="{module}" name="{name}" prop="{prop}" >}}}}"#
+						r#"{{{{< qmltypelink type="{linktype}" module="{module}" name="{name}" prop="{prop}" func="{func}" signal="{signal}" >}}}}"#
 					);
 					src = &src[end..];
 				}
