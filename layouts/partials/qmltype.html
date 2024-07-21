@@ -1,7 +1,7 @@
 {{- if eq .type "unknown" -}}
 	unknown
 {{- else -}}
-	{{- $link := "#ERROR" -}}
+	{{- $link := "" -}}
 	{{- if eq .type "qt" -}}
 		{{- $link = printf "https://doc.qt.io/qt-6/%s-%s.html" (lower (replace .module "." "-")) (lower .name) -}}
 	{{- else if eq .type "local" -}}
@@ -13,30 +13,39 @@
 		{{- $of = printf "&lt;%s&gt;" (partial "qmltype.html" .of) }}
 	{{- end -}}
 
+	{{- $prefix := "" -}}
 	{{- $member := "" -}}
 
-	{{- if .prop -}}
-		{{- $member = printf ".%s" .prop -}}
-		{{- if eq .type "qt" -}}
-			{{- $link = printf "%s#%s-prop" $link .prop -}}
-		{{- else if eq .type "local" -}}
-			{{- $link = printf "%s#prop.%s" $link .prop -}}
+	{{- if .mtype -}}
+		{{- if .type -}}
+			{{- $member = printf ".%s" .mname -}}
+		{{- else -}}
+			{{- $member = .mname -}}
 		{{- end -}}
-	{{- else if .func -}}
-		{{- $member = printf ".%s()" .func -}}
-		{{- if eq .type "qt" -}}
-			{{- $link = printf "%s#%s-method" $link .func -}}
-		{{- else if eq .type "local" -}}
-			{{- $link = printf "%s#func.%s" $link .func -}}
-		{{- end -}}
-	{{- else if .signal -}}
-		{{- $member = printf ".%s()" .signal -}}
-		{{- if eq .type "qt" -}}
-			{{- $link = printf "%s#%s-signal" $link .signal -}}
-		{{- else if eq .type "local" -}}
-			{{- $link = printf "%s#signal.%s" $link .signal -}}
+
+		{{- if eq .mtype "prop" -}}
+			{{- if eq .type "qt" -}}
+				{{- $link = printf "%s#%s-prop" $link .mname -}}
+			{{- else -}}
+				{{- $link = printf "%s#prop.%s" $link .mname -}}
+			{{- end -}}
+		{{- else if eq .mtype "func" -}}
+			{{- $member = printf "%s()" $member -}}
+			{{- if eq .type "qt" -}}
+				{{- $link = printf "%s#%s-method" $link .mname -}}
+			{{- else -}}
+				{{- $link = printf "%s#func.%s" $link .mname -}}
+			{{- end -}}
+		{{- else if eq .mtype "signal" -}}
+			{{- $prefix = "[signal] " -}}
+			{{- $member = printf "%s()" $member -}}
+			{{- if eq .type "qt" -}}
+				{{- $link = printf "%s#%s-signal" $link .mname -}}
+			{{- else -}}
+				{{- $link = printf "%s#signal.%s" $link .mname -}}
+			{{- end -}}
 		{{- end -}}
 	{{- end -}}
 
-	<a href="{{ $link }}">{{ .name }}{{ $member }}</a>{{ $of | safeHTML -}}
+	<a href="{{ $link }}">{{ $prefix }}{{ .name }}{{ $member }}</a>{{ $of | safeHTML -}}
 {{- end -}}

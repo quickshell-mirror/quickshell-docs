@@ -663,45 +663,62 @@ fn parse_details(comment: Comment) -> String {
 						})
 						.unwrap_or_else(|| (src.len(), src));
 
-					let mut split = ty.rsplit_once('.').unwrap_or(("", ty));
-
-					let member = split
-						.1
-						.chars()
-						.next()
-						.unwrap()
-						.is_lowercase()
-						.then(|| {
-							let prop = split.1;
-							split = split.0.rsplit_once('.').unwrap_or(("", split.0));
-							prop
-						})
-						.unwrap_or("");
 					// special case for . as it is contained in valid types as well
 					if ty.ends_with('.') {
 						end -= 1;
 						ty = &ty[..ty.len() - 1];
 					}
 
-					let (prop, func, signal) = match member {
-						name if name.ends_with("()") => ("", &name[..name.len() - 2], ""),
-						name if name.ends_with("(s)") => ("", "", &name[..name.len() - 3]),
-						name => (name, "", ""),
+					let (ty, member) = match ty.chars().next() {
+						None => (None, None),
+						Some(c) if c.is_lowercase() => (None, Some(ty)),
+						Some(_) => {
+							let mut split = ty.rsplit_once('.').unwrap_or(("", ty));
+
+							let member = split
+								.1
+								.chars()
+								.next()
+								.unwrap()
+								.is_lowercase()
+								.then(|| {
+									let prop = split.1;
+									split = split.0.rsplit_once('.').unwrap_or(("", split.0));
+									prop
+								})
+								.unwrap_or("");
+
+							let (mut module, name) = split;
+
+							if module.is_empty() {
+								module = comment.module;
+							}
+
+							(Some((module, name)), Some(member))
+						},
 					};
 
-					let (mut module, name) = split;
+					let (membertype, membername) = match member {
+						None => ("", ""),
+						Some(name) if name.ends_with("()") => ("func", &name[..name.len() - 2]),
+						Some(name) if name.ends_with("(s)") => ("signal", &name[..name.len() - 3]),
+						Some(name) => ("prop", name),
+					};
 
-					if module.is_empty() {
-						module = comment.module;
-					}
+					let ((linktype, module), name) = match ty {
+						Some((module, name)) => {
+							let module = match module {
+								module if module.starts_with("Quickshell") => ("local", module.to_string()),
+								module => ("qt", format!("qml.{module}")),
+							};
 
-					let (linktype, module) = match module.starts_with("Quickshell") {
-						true => ("local", module.to_string()),
-						false => ("qt", format!("qml.{module}")),
+							(module, name)
+						},
+						None => (("", String::new()), ""),
 					};
 
 					accum += &format!(
-						r#"{{{{< qmltypelink type="{linktype}" module="{module}" name="{name}" prop="{prop}" func="{func}" signal="{signal}" >}}}}"#
+						r#"{{{{< qmltypelink type="{linktype}" module="{module}" name="{name}" mtype="{membertype}" mname="{membername}" >}}}}"#
 					);
 					src = &src[end..];
 				}
