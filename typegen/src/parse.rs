@@ -702,6 +702,7 @@ fn parse_details(comment: Comment) -> String {
 						None => ("", ""),
 						Some(name) if name.ends_with("()") => ("func", &name[..name.len() - 2]),
 						Some(name) if name.ends_with("(s)") => ("signal", &name[..name.len() - 3]),
+						Some(name) if name.is_empty() => ("", ""),
 						Some(name) => ("prop", name),
 					};
 
