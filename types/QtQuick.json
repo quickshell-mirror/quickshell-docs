@@ -22,7 +22,17 @@
 		},
 		{
 			"name": "int",
+			"cname": "qint64",
+			"module": null
+		},
+		{
+			"name": "int",
 			"cname": "quint32",
+			"module": null
+		},
+		{
+			"name": "int",
+			"cname": "quint64",
 			"module": null
 		},
 		{
