@@ -647,13 +647,25 @@ fn parse_details(comment: Comment) -> String {
 					accum += &src[..i];
 					src = &src[i + 2..];
 
-					let endmk = src.find('$');
-					let endsp = src.find(' ');
+					let separators = [
+						('$', true),
+						(' ', false),
+						('.', false),
+						(',', false),
+						(';', false),
+						(':', false),
+					];
 
-					let (end, ty) = match (endmk, endsp) {
-						(Some(i), _) if i < endsp.unwrap_or(usize::MAX) => (i + 1, &src[..i]),
-						(_, Some(i)) => (i, &src[..i]),
-						_ => (src.len(), src),
+					let mut chars = src.chars().enumerate();
+					let (end, ty) = loop {
+						match chars.next() {
+							Some((i, c)) => {
+								if let Some(strip) = separators.iter().filter(|(sc, _)| c == *sc).map(|(_, strip)| *strip).next() {
+									break (i + if strip { 1 } else { 0 }, &src[..i]);
+								}
+							},
+							None => break (src.len(), src),
+						}
 					};
 
 					let mut split = ty.rsplit_once('.').unwrap_or(("", ty));
