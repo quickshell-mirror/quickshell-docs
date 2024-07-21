@@ -656,17 +656,13 @@ fn parse_details(comment: Comment) -> String {
 						(':', false),
 					];
 
-					let mut chars = src.chars().enumerate();
-					let (end, ty) = loop {
-						match chars.next() {
-							Some((i, c)) => {
-								if let Some(strip) = separators.iter().filter(|(sc, _)| c == *sc).map(|(_, strip)| *strip).next() {
-									break (i + if strip { 1 } else { 0 }, &src[..i]);
-								}
-							},
-							None => break (src.len(), src),
-						}
-					};
+					let (end, ty) = src.chars().enumerate()
+						.find_map(|(i, char)| {
+							separators.iter()
+								.find(|(sc, _)| char == *sc)
+								.map(|(_, strip)| (i + if *strip { 1 } else { 0 }, &src[..i]))
+						})
+						.unwrap_or_else(|| (src.len(), src));
 
 					let mut split = ty.rsplit_once('.').unwrap_or(("", ty));
 
