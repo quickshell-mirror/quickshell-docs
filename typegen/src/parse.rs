@@ -650,13 +650,12 @@ fn parse_details(comment: Comment) -> String {
 					let separators = [
 						('$', true),
 						(' ', false),
-						('.', false),
 						(',', false),
 						(';', false),
 						(':', false),
 					];
 
-					let (end, ty) = src.chars().enumerate()
+					let (mut end, mut ty) = src.chars().enumerate()
 						.find_map(|(i, char)| {
 							separators.iter()
 								.find(|(sc, _)| char == *sc)
@@ -678,6 +677,11 @@ fn parse_details(comment: Comment) -> String {
 							prop
 						})
 						.unwrap_or("");
+					// special case for . as it is contained in valid types as well
+					if ty.ends_with('.') {
+						end -= 1;
+						ty = &ty[..ty.len() - 1];
+					}
 
 					let (prop, func, signal) = match member {
 						name if name.ends_with("()") => ("", &name[..name.len() - 2], ""),
