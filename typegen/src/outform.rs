@@ -4,6 +4,7 @@ use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct ModuleIndex {
+	pub name: String,
 	pub description: String,
 	pub details: String,
 }
