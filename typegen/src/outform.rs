@@ -10,9 +10,17 @@ pub struct ModuleIndex {
 }
 
 #[derive(Debug, Serialize)]
+pub struct TypeInfo {
+	pub name: String,
+	pub module: String,
+	#[serde(flatten)]
+	pub details: TypeDetails,
+}
+
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "type")]
-pub enum TypeInfo {
+pub enum TypeDetails {
 	Class(ClassInfo),
 	Enum(EnumInfo),
 }
