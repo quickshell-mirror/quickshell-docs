@@ -154,7 +154,7 @@ impl Parser {
 			fn_param_regex: Regex::new(r#"(const\s+)?(?<type>(\w|::|<|>)+\*?)&?\s+(?<name>\w+)(,|$)"#).unwrap(),
 			signals_regex: Regex::new(r#"signals:(?<signals>(\s*(\s*///.*\s*)*void .*;)*)"#).unwrap(),
 			defaultprop_classinfo_regex: Regex::new(r#"^\s*"DefaultProperty", "(?<prop>.+)"\s*$"#).unwrap(),
-			enum_ns_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*namespace (?<namespace>\w+)\s*\{[\s\S]*?(QML_ELEMENT|QML_NAMED_ELEMENT\((?<qml_name>\w+)\));[\s\S]*?enum\s*(?<enum_name>\w+)\s*\{(?<body>[\s\S]*?)\};[\s\S]*?\}"#).unwrap(),
+			enum_ns_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*namespace (?<namespace>\w+)\s*\{(?<nsbody>[\s\S]*?(QML_ELEMENT|QML_NAMED_ELEMENT\((?<qml_name>\w+)\));[\s\S]*?enum\s*(?<enum_name>\w+)\s*\{(?<body>[\s\S]*?)\};[\s\S]*?)\}"#).unwrap(),
 			enum_class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*enum\s*(?<enum_name>\w+)\s*\{(?<body>[\s\S]*?)\};\s+Q_ENUM\(.+\);"#).unwrap(),
 			enum_variant_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<name>\w+)\s*=\s*.+,"#).unwrap(),
 		}
@@ -384,13 +384,40 @@ impl Parser {
 
 			let comment = enum_.name("comment").map(|m| m.as_str());
 			let namespace = enum_.name("namespace").unwrap().as_str();
-			let enum_name = enum_.name("enum_name").unwrap().as_str();
+			let mut enum_name = enum_.name("enum_name").unwrap().as_str();
 			let qml_name = enum_
 				.name("qml_name")
 				.map(|m| m.as_str())
 				.unwrap_or(namespace);
+			let nsbody = enum_.name("nsbody").unwrap().as_str();
 			let body = enum_.name("body").unwrap().as_str();
 			let variants = self.parse_enum_variants(body, ctx)?;
+
+			for macro_ in self.macro_regex.captures_iter(nsbody) {
+				let macro_ = macro_?;
+
+				let type_ = macro_.name("type").unwrap().as_str();
+				let args = macro_.name("args").map(|m| m.as_str());
+
+				(|| {
+					match type_ {
+						"Q_DECLARE_FLAGS" => {
+							enum_name = args
+								.expect("Q_DECLARE_FLAGS must have arguments")
+								.split_once(',')
+								.expect("Q_DECLARE_FLAGS must have two arguments")
+								.0
+								.trim();
+						},
+						_ => {},
+					}
+
+					Ok::<_, anyhow::Error>(())
+				})()
+				.with_context(|| {
+					format!("while parsing macro `{}`", macro_.get(0).unwrap().as_str())
+				})?;
+			}
 
 			ctx.enums.push(EnumInfo {
 				namespace,
