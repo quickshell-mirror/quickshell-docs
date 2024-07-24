@@ -1,0 +1,9 @@
+{{- $params := dict
+	"type" (.Get "type")
+	"module" (.Get "module")
+	"name" (.Get "name")
+	"mtype" (.Get "mtype")
+	"mname" (.Get "mname")
+-}}
+
+{{- partial "qmltype.html" $params -}}
