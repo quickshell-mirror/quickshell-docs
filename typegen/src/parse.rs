@@ -1,10 +1,11 @@
-use std::borrow::Cow;
-
 use anyhow::{anyhow, bail, Context};
 use fancy_regex::Regex;
 use serde::Deserialize;
 
-use crate::typespec;
+use crate::{
+	reformat::{self, ReformatPass},
+	typespec,
+};
 
 #[derive(Deserialize, Debug)]
 pub struct ModuleInfoHeader {
@@ -625,7 +626,6 @@ impl From<InvokableParam<'_>> for typespec::FnParam {
 
 fn parse_details(comment: Comment) -> String {
 	let mut seen_content = false;
-	let mut callout = false;
 
 	let mut str = comment
 		.text
@@ -642,127 +642,14 @@ fn parse_details(comment: Comment) -> String {
 			seen_content |= any;
 			filter
 		})
-		.map(|line| match callout {
-			true => {
-				if line.starts_with('>') {
-					Cow::Borrowed(line[1..].strip_prefix(' ').unwrap_or(&line[1..]))
-				} else {
-					callout = false;
-					Cow::Owned(format!("{{{{< /callout >}}}}\n{line}"))
-				}
-			},
-			false => {
-				if line.starts_with("> [!") {
-					let code = line[4..].split_once(']');
-
-					if let Some((code, line)) = code {
-						let code = code.to_lowercase();
-						callout = true;
-						return Cow::Owned(format!("{{{{< callout type=\"{code}\" >}}}}\n{line}"))
-					}
-				}
-
-				return Cow::Borrowed(line);
-			},
-		})
-		.map(|line| {
-			if line.contains("@@") {
-				let mut src: &str = &*line;
-				let mut accum = String::new();
-
-				while let Some(i) = src.find("@@") {
-					accum += &src[..i];
-					src = &src[i + 2..];
-
-					let separators = [
-						('$', true),
-						(' ', false),
-						(',', false),
-						(';', false),
-						(':', false),
-					];
-
-					let (mut end, mut ty) = src.chars().enumerate()
-						.find_map(|(i, char)| {
-							separators.iter()
-								.find(|(sc, _)| char == *sc)
-								.map(|(_, strip)| (i + if *strip { 1 } else { 0 }, &src[..i]))
-						})
-						.unwrap_or_else(|| (src.len(), src));
-
-					// special case for . as it is contained in valid types as well
-					if ty.ends_with('.') {
-						end -= 1;
-						ty = &ty[..ty.len() - 1];
-					}
-
-					let (ty, member) = match ty.chars().next() {
-						None => (None, None),
-						Some(c) if c.is_lowercase() => (None, Some(ty)),
-						Some(_) => {
-							let mut split = ty.rsplit_once('.').unwrap_or(("", ty));
-
-							let member = split
-								.1
-								.chars()
-								.next()
-								.unwrap()
-								.is_lowercase()
-								.then(|| {
-									let prop = split.1;
-									split = split.0.rsplit_once('.').unwrap_or(("", split.0));
-									prop
-								})
-								.unwrap_or("");
-
-							let (mut module, name) = split;
-
-							if module.is_empty() {
-								module = comment.module;
-							}
-
-							(Some((module, name)), Some(member))
-						},
-					};
-
-					let (membertype, membername) = match member {
-						None => ("", ""),
-						Some(name) if name.ends_with("()") => ("func", &name[..name.len() - 2]),
-						Some(name) if name.ends_with("(s)") => ("signal", &name[..name.len() - 3]),
-						Some(name) if name.is_empty() => ("", ""),
-						Some(name) => ("prop", name),
-					};
-
-					let ((linktype, module), name) = match ty {
-						Some((module, name)) => {
-							let module = match module {
-								module if module.starts_with("Quickshell") => ("local", module.to_string()),
-								module => ("qt", format!("qml.{module}")),
-							};
-
-							(module, name)
-						},
-						None => (("", String::new()), ""),
-					};
-
-					accum += &format!(
-						r#"{{{{< qmltypelink type="{linktype}" module="{module}" name="{name}" mtype="{membertype}" mname="{membername}" >}}}}"#
-					);
-					src = &src[end..];
-				}
-
-				accum += src;
-
-				return Cow::Owned(accum);
-			} else {
-				return line;
-			}
-		})
 		.fold(String::new(), |accum, line| accum + line.as_ref() + "\n");
 
-	if callout {
-		str += "\n{{< /callout >}}";
-	}
+	let reformat_ctx = reformat::Context {
+		module: comment.module,
+	};
+
+	crate::reformat::GfmQuoteBlocks::reformat(&reformat_ctx, &mut str);
+	crate::reformat::TypeLinks::reformat(&reformat_ctx, &mut str);
 
 	str
 }

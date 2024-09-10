@@ -4,6 +4,7 @@ use anyhow::{anyhow, Context};
 
 mod outform;
 mod parse;
+mod reformat;
 mod resolver;
 mod typespec;
 
