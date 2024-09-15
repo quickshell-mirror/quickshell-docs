@@ -16,7 +16,17 @@ pub fn resolve_types(
 		.iter()
 		.filter(|type_| type_.module.as_ref().map(|v| v as &str) == Some(module));
 
-	let findqmltype = |cname: &str| typespec.typemap.iter().find(|type_| type_.cname == cname);
+	let findqmltype = |name: &str| {
+		if name.starts_with("QML:") {
+			println!("QML? {name}");
+			typespec
+				.typemap
+				.iter()
+				.find(|type_| type_.name == name[4..])
+		} else {
+			typespec.typemap.iter().find(|type_| type_.cname == name)
+		}
+	};
 
 	for mapping in types {
 		let Some(class) = typespec
@@ -57,6 +67,19 @@ pub fn resolve_types(
 		};
 
 		fn qmlparamtype(ctype: &str, typespec: &TypeSpec) -> outform::Type {
+			if ctype.starts_with("QML:") {
+				return match typespec
+					.typemap
+					.iter()
+					.find(|type_| type_.name == ctype[4..])
+				{
+					Some(t) => {
+						outform::Type::resolve(t.module.as_ref().map(|v| v as &str), &t.name)
+					},
+					None => outform::Type::unknown(),
+				}
+			}
+
 			let (mut ctype, of) = match ctype.split_once('<') {
 				None => (ctype, None),
 				Some((ctype, mut remaining)) => {

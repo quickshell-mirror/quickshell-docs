@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 
 use anyhow::{anyhow, bail, Context};
 use fancy_regex::Regex;
@@ -10,7 +10,10 @@ use crate::typespec;
 pub struct ModuleInfoHeader {
 	pub name: String,
 	pub description: String,
+	#[serde(default)]
 	pub headers: Vec<String>,
+	#[serde(default)]
+	pub qml_files: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -50,7 +53,7 @@ pub struct ClassInfo<'a> {
 	pub type_: ClassType,
 	pub name: &'a str,
 	pub qml_name: Option<&'a str>,
-	pub superclass: Option<&'a str>,
+	pub superclass: Option<Cow<'a, str>>,
 	pub singleton: bool,
 	pub uncreatable: bool,
 	pub comment: Option<Comment<'a>>,
@@ -66,9 +69,9 @@ pub enum ClassType {
 	Gadget,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Property<'a> {
-	pub type_: &'a str,
+	pub type_: Cow<'a, str>,
 	pub name: &'a str,
 	pub comment: Option<Comment<'a>>,
 	pub readable: bool,
@@ -112,7 +115,7 @@ pub struct Variant<'a> {
 	pub comment: Option<Comment<'a>>,
 }
 
-pub struct Parser {
+pub struct CppParser {
 	pub class_regex: Regex,
 	pub macro_regex: Regex,
 	pub property_regex: Regex,
@@ -124,6 +127,14 @@ pub struct Parser {
 	pub enum_ns_regex: Regex,
 	pub enum_class_regex: Regex,
 	pub enum_variant_regex: Regex,
+}
+
+pub struct QmlParser {
+	pub class_regex: Regex,
+	pub alias_regex: Regex,
+	pub safe_body_regex: Regex,
+	pub property_regex: Regex,
+	pub function_regex: Regex,
 }
 
 #[derive(Debug)]
@@ -143,7 +154,7 @@ impl<'a> ParseContext<'a> {
 	}
 }
 
-impl Parser {
+impl CppParser {
 	pub fn new() -> Self {
 		Self {
 			class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*class\s+(?<name>\w+)(?:\s*:\s*public\s+((?<super>\w+)(<.+>)?)(\s*,(\s*\w+)*)*)?\s*\{(?<body>[\s\S]*?)(?!};\s*Q_ENUM)};"#).unwrap(),
@@ -235,7 +246,7 @@ impl Parser {
 								}
 
 								properties.push(Property {
-									type_: prop.name("type").unwrap().as_str(),
+									type_: Cow::Borrowed(prop.name("type").unwrap().as_str()),
 									name: prop.name("name").unwrap().as_str(),
 									comment: comment.map(|v| Comment::new(v, ctx.module)),
 									readable: read || member,
@@ -364,7 +375,7 @@ impl Parser {
 				type_,
 				name,
 				qml_name,
-				superclass,
+				superclass: superclass.map(|s| Cow::Borrowed(s)),
 				singleton,
 				uncreatable,
 				comment: comment.map(|v| Comment::new(v, ctx.module)),
@@ -461,6 +472,102 @@ impl Parser {
 	}
 }
 
+// todo: use an actual parser (never)
+impl QmlParser {
+	pub fn new() -> Self {
+		Self {
+			class_regex: Regex::new(r#"((?<aliases>(\s*\/\/\/ alias.+)+)[\s\S]*?)?(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<super>[A-Z]\w*)\s+{(?<body>[\s\S]*)}"#).unwrap(),
+			alias_regex: Regex::new(r#"alias\s+(?<alias>\w+)\s+(?<definition>[\w.]+)"#).unwrap(),
+			safe_body_regex: Regex::new(r#"((?<safebody1>^[\s\S]*?)(\n\s+[A-Z]\w* {[\s\S]*)|(?<safebody2>^[\s\S]*))"#).unwrap(),
+			// note: can pick up function bodies
+			property_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<default>default\s+)?(?<required>required\s+)?(?<readonly>readonly\s+)?property\s+(\/\*(?<typeoverride>\w+)\*\/)?(?<type>\w+)\s+(?<name>\w+)\s*(:\s*(?<definition>(.*{\n[\s\S]*?\/\/ END-DEF|.*?(?!{)\n)))?"#).unwrap(),
+			// note: can pick up prop bodies
+			function_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*function\s+(?<name>\w+)\s*\((?<params>.*)\)\s*:\s*(?<return>\w+)\s*{"#).unwrap(),
+		}
+	}
+
+	pub fn parse<'a>(
+		&self,
+		filename: &'a str,
+		text: &'a str,
+		ctx: &mut ParseContext<'a>,
+	) -> anyhow::Result<()> {
+		for class in self.class_regex.captures_iter(text) {
+			let class = class?;
+
+			let mut aliases = HashMap::new();
+
+			if let Some(aliases_str) = class.name("aliases").map(|m| m.as_str()) {
+				for alias in self.alias_regex.captures_iter(aliases_str) {
+					let alias = alias?;
+					aliases.insert(
+						alias.name("alias").unwrap().as_str(),
+						alias.name("definition").unwrap().as_str(),
+					);
+				}
+			}
+
+			let alias_lookup = |name: &'a str| *aliases.get(name).unwrap_or(&name);
+
+			let comment = class.name("comment").map(|m| m.as_str());
+			let superclass = class.name("super").unwrap().as_str();
+
+			let body = {
+				let body = class.name("body").unwrap().as_str();
+				let sbc = self
+					.safe_body_regex
+					.captures(body)?
+					.ok_or_else(|| anyhow!("unable to capture safebody"))?;
+				sbc.name("safebody1")
+					.or_else(|| sbc.name("safebody2"))
+					.unwrap()
+					.as_str()
+			};
+
+			let mut properties = Vec::new();
+
+			for prop in self.property_regex.captures_iter(body) {
+				let prop = prop?;
+
+				let type_ = prop
+					.name("typeoverride")
+					.or_else(|| prop.name("type"))
+					.unwrap()
+					.as_str();
+
+				properties.push(Property {
+					type_: Cow::Owned(format!("QML:{}", alias_lookup(type_))),
+					name: prop.name("name").unwrap().as_str(),
+					comment: prop
+						.name("comment")
+						.map(|m| Comment::new(m.as_str(), ctx.module)),
+					readable: true,
+					writable: prop.name("readonly").is_none(),
+					default: prop.name("default").is_some(),
+				});
+			}
+
+			let name = filename.split_once('.').unwrap().0;
+
+			ctx.classes.push(ClassInfo {
+				type_: ClassType::Object,
+				name,
+				qml_name: Some(name),
+				superclass: Some(Cow::Owned(format!("QML:{}", superclass))),
+				singleton: false,
+				uncreatable: false,
+				comment: comment.map(|v| Comment::new(v, ctx.module)),
+				properties,
+				invokables: Vec::new(),
+				signals: Vec::new(),
+				enums: Vec::new(),
+			});
+		}
+
+		Ok(())
+	}
+}
+
 impl ParseContext<'_> {
 	pub fn gen_typespec(&self, module: &str) -> typespec::TypeSpec {
 		typespec::TypeSpec {
@@ -506,10 +613,10 @@ impl ParseContext<'_> {
 						description,
 						details,
 						// filters gadgets
-						superclass: class.superclass?.to_string(),
+						superclass: class.superclass.clone()?.to_string(),
 						singleton: class.singleton,
 						uncreatable: class.uncreatable,
-						properties: class.properties.iter().map(|p| (*p).into()).collect(),
+						properties: class.properties.iter().map(|p| p.clone().into()).collect(),
 						functions: class.invokables.iter().map(|f| f.as_typespec()).collect(),
 						signals: class.signals.iter().map(|s| s.as_typespec()).collect(),
 						enums: class
@@ -543,7 +650,7 @@ impl ParseContext<'_> {
 				.filter_map(|class| match class.type_ {
 					ClassType::Gadget => Some(typespec::Gadget {
 						cname: class.name.to_string(),
-						properties: class.properties.iter().map(|p| (*p).into()).collect(),
+						properties: class.properties.iter().map(|p| p.clone().into()).collect(),
 					}),
 					_ => None,
 				})

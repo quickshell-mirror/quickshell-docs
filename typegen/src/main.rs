@@ -35,15 +35,41 @@ fn main() -> anyhow::Result<()> {
 				})
 				.collect::<Result<HashMap<_, _>, _>>()?;
 
-			let parser = parse::Parser::new();
+			let qml_texts = module
+				.header
+				.qml_files
+				.iter()
+				.map(|file| {
+					let text = std::fs::read_to_string(dir.join(file)).with_context(|| {
+						format!(
+							"failed to read module qml file `{file}` at {:?}",
+							dir.join(file)
+						)
+					})?;
+
+					Ok::<_, anyhow::Error>((file, text))
+				})
+				.collect::<Result<HashMap<_, _>, _>>()?;
+
+			let header_parser = parse::CppParser::new();
+			let qml_parser = parse::QmlParser::new();
 			let mut ctx = parse::ParseContext::new(&module.header.name);
 
 			texts
 				.iter()
 				.map(|(header, text)| {
-					parser
+					header_parser
 						.parse(&text, &mut ctx)
 						.with_context(|| format!("while parsing module header `{header}`"))
+				})
+				.collect::<Result<_, _>>()?;
+
+			qml_texts
+				.iter()
+				.map(|(file, text)| {
+					qml_parser
+						.parse(&file, &text, &mut ctx)
+						.with_context(|| format!("while parsing module qml file `{file}`"))
 				})
 				.collect::<Result<_, _>>()?;
 
