@@ -104,6 +104,11 @@
 			"name": "Item",
 			"cname": "QQuickItem",
 			"module": "qml.QtQuick"
+		},
+		{
+			"name": "Image",
+			"cname": "",
+			"module": "qml.QtQuick"
 		}
 	],
 	"classes": [],
