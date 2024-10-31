@@ -188,6 +188,7 @@ impl CppParser {
 			let mut qml_name = None;
 			let mut singleton = false;
 			let mut uncreatable = false;
+			let mut force_creatable = false;
 			let mut properties = Vec::new();
 			let mut default_property = None;
 			let mut invokables = Vec::new();
@@ -228,6 +229,7 @@ impl CppParser {
 							},
 							"QML_SINGLETON" => singleton = true,
 							"QML_UNCREATABLE" => uncreatable = true,
+							"QSDOC_CREATABLE" => force_creatable = true,
 							"Q_PROPERTY" | "QSDOC_PROPERTY_OVERRIDE" => {
 								let prop =
 									self.property_regex
@@ -377,7 +379,7 @@ impl CppParser {
 				qml_name,
 				superclass: superclass.map(|s| Cow::Borrowed(s)),
 				singleton,
-				uncreatable,
+				uncreatable: uncreatable && !force_creatable,
 				comment: comment.map(|v| Comment::new(v, ctx.module)),
 				properties,
 				invokables,
