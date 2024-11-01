@@ -100,16 +100,17 @@ pub fn resolve_types(
 				ctype = &ctype[0..ctype.len() - 1];
 			}
 
+			// note: suffix is checked instead of == due to Q_PROPERTY using fully qualified names
 			let qtype = typespec
 				.typemap
 				.iter()
-				.find(|type_| &type_.cname == ctype)
+				.find(|type_| !type_.cname.is_empty() && ctype.ends_with(&type_.cname))
 				.map(|type_| (&type_.module, &type_.name))
 				.or_else(|| {
 					typespec
 						.enums
 						.iter()
-						.find(|type_| type_.cname.as_ref().map(|v| v as &str) == Some(ctype))
+						.find(|type_| type_.cname.as_ref().map(|v| v as &str).map(|v| !v.is_empty() && ctype.ends_with(v) ).unwrap_or(false))
 						.map(|type_| (&type_.module, &type_.name))
 				});
 
