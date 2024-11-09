@@ -4,6 +4,7 @@ use anyhow::{anyhow, Context};
 
 mod outform;
 mod parse;
+mod reformat;
 mod resolver;
 mod typespec;
 
@@ -133,6 +134,7 @@ hidetitle = true
 			}
 
 			let index = outform::ModuleIndex {
+				name: module.header.name.to_string(),
 				description: module.header.description,
 				details: module.details.to_string(),
 			};

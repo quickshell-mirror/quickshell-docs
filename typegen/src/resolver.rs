@@ -235,37 +235,42 @@ pub fn resolve_types(
 			None => HashMap::new(),
 		};
 
-		let type_ = outform::ClassInfo {
-			superclass,
-			description: class.description.clone(),
-			details: class.details.clone(),
-			flags: {
-				let mut flags = Vec::new();
+		let type_ = outform::TypeInfo {
+			name: mapping.name.clone(),
+			module: mapping.module.clone().unwrap(),
+			details: outform::TypeDetails::Class(outform::ClassInfo {
+				superclass,
+				description: class.description.clone(),
+				details: class.details.clone(),
+				flags: {
+					let mut flags = Vec::new();
 
-				if coreenum.is_some() {
-					flags.push(Flag::Enum);
-				} else if class.singleton {
-					flags.push(Flag::Singleton);
-				} else if class.uncreatable {
-					flags.push(Flag::Uncreatable);
-				}
+					if coreenum.is_some() {
+						flags.push(Flag::Enum);
+					} else if class.singleton {
+						flags.push(Flag::Singleton);
+					} else if class.uncreatable {
+						flags.push(Flag::Uncreatable);
+					}
 
-				flags
-			},
-			properties,
-			functions,
-			signals,
-			variants,
+					flags
+				},
+				properties,
+				functions,
+				signals,
+				variants,
+			}),
 		};
 
-		outtypes.insert(mapping.name.clone(), outform::TypeInfo::Class(type_));
+		outtypes.insert(mapping.name.clone(), type_);
 	}
 
 	for enum_ in typespec.enums {
 		if enum_.module.as_ref().map(|v| v as &str) == Some(module) {
-			outtypes.insert(
-				enum_.name,
-				outform::TypeInfo::Enum(outform::EnumInfo {
+			outtypes.insert(enum_.name.clone(), outform::TypeInfo {
+				name: enum_.name,
+				module: enum_.module.unwrap(),
+				details: outform::TypeDetails::Enum(outform::EnumInfo {
 					description: enum_.description,
 					details: enum_.details,
 					variants: enum_
@@ -278,7 +283,7 @@ pub fn resolve_types(
 						})
 						.collect(),
 				}),
-			);
+			});
 		}
 	}
 
