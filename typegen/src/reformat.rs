@@ -1,25 +1,38 @@
 use std::borrow::Cow;
 
+use fancy_regex::Regex;
+
 pub struct Context<'a> {
 	pub module: &'a str,
 }
 
 pub trait ReformatPass {
-	fn reformat(context: &Context, text: &mut String);
+	fn reformat(&self, context: &Context, text: &mut String);
 }
 
-pub struct GfmQuoteBlocks;
+pub struct GfmQuoteBlocks {
+		callout_regex: Regex,
+}
+
+impl GfmQuoteBlocks {
+		pub fn new() -> Self {
+				Self {
+						callout_regex: Regex::new(r#">\s+\[!(?<type>\w+)]\s+(?=\w)"#).unwrap()
+				}
+		}
+}
 
 impl ReformatPass for GfmQuoteBlocks {
-	fn reformat(_: &Context, text: &mut String) {
+		fn reformat(&self, _: &Context, text: &mut String) {
 		*text = text.replace("> [!INFO]", "> [!NOTE]");
+		*text = self.callout_regex.replace_all(text, "> [!$type]\n> ").to_string();
 	}
 }
 
 pub struct TypeLinks;
 
 impl ReformatPass for TypeLinks {
-	fn reformat(context: &Context, text: &mut String) {
+	fn reformat(&self ,context: &Context, text: &mut String) {
 		let lines = text.lines().map(|line| {
 			if line.contains("@@") {
 				let mut src: &str = &*line;

@@ -648,8 +648,8 @@ fn parse_details(comment: Comment) -> String {
 		module: comment.module,
 	};
 
-	crate::reformat::GfmQuoteBlocks::reformat(&reformat_ctx, &mut str);
-	crate::reformat::TypeLinks::reformat(&reformat_ctx, &mut str);
+	crate::reformat::GfmQuoteBlocks::new().reformat(&reformat_ctx, &mut str);
+	crate::reformat::TypeLinks.reformat(&reformat_ctx, &mut str);
 
 	str
 }
