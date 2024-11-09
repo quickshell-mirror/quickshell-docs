@@ -3,7 +3,7 @@
     nixpkgs.url = "nixpkgs/nixos-unstable";
 
     quickshell = {
-      url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
+      url = "git+https://git.outfoxxed.me/quickshell/quickshell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -16,6 +16,10 @@
     packages = forEachSystem (system: pkgs: rec {
       quickshell-docs = import ./package.nix {
         inherit pkgs;
+        srcpath = "${quickshell}/src";
+      };
+
+      quickshell-types = pkgs.callPackage ./types.nix {
         srcpath = "${quickshell}/src";
       };
 
