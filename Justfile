@@ -30,6 +30,8 @@ clean:
 	rm -rf content/docs/types/Quickshell.Services.Notifications
 	rm -rf data/modules/Quickshell.Hyprland
 	rm -rf content/docs/types/Quickshell.Hyprland
+	rm -rf data/modules/Quickshell.I3
+	rm -rf content/docs/types/Quickshell.I3
 	rm -rf data/modules/Quickshell.Widgets
 	rm -rf content/docs/types/Quickshell.Widgets
 
@@ -50,6 +52,7 @@ typedocs: clean buildtypegen
 	{{typegen_bin}} gentypes {{src_path}}/services/upower/module.md build/types/types/Quickshell.Services.UPower.json
 	{{typegen_bin}} gentypes {{src_path}}/services/notifications/module.md build/types/types/Quickshell.Services.Notifications.json
 	{{typegen_bin}} gentypes {{src_path}}/wayland/hyprland/module.md build/types/types/Quickshell.Hyprland.json
+	{{typegen_bin}} gentypes {{src_path}}/x11/i3/module.md build/types/types/Quickshell.I3.json
 	{{typegen_bin}} gentypes {{src_path}}/widgets/module.md build/types/types/Quickshell.Widgets.json
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/core/module.md data/modules/Quickshell content/docs/types/Quickshell types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/io/module.md data/modules/Quickshell.Io content/docs/types/Quickshell.Io types/* build/types/types/*'
@@ -63,6 +66,7 @@ typedocs: clean buildtypegen
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/services/upower/module.md data/modules/Quickshell.Services.UPower content/docs/types/Quickshell.Services.UPower types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/services/notifications/module.md data/modules/Quickshell.Services.Notifications content/docs/types/Quickshell.Services.Notifications types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/wayland/hyprland/module.md data/modules/Quickshell.Hyprland content/docs/types/Quickshell.Hyprland types/* build/types/types/*'
+	sh -c '{{typegen_bin}} gendocs {{src_path}}/x11/i3/module.md data/modules/Quickshell.I3 content/docs/types/Quickshell.I3 types/* build/types/types/*'
 	sh -c '{{typegen_bin}} gendocs {{src_path}}/widgets/module.md data/modules/Quickshell.Widgets content/docs/types/Quickshell.Widgets types/* build/types/types/*'
 
 serve: typedocs
