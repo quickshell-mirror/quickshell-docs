@@ -168,8 +168,8 @@ impl CppParser {
 			fn_param_regex: Regex::new(r#"(const\s+)?(?<type>(\w|::|<|>)+\*?)&?\s+(?<name>\w+)(,|$)"#).unwrap(),
 			signals_regex: Regex::new(r#"signals:(?<signals>(\s*(\s*///.*\s*)*void .*;)*)"#).unwrap(),
 			defaultprop_classinfo_regex: Regex::new(r#"^\s*"DefaultProperty", "(?<prop>.+)"\s*$"#).unwrap(),
-			enum_ns_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*namespace (?<namespace>\w+)\s*\{(?<nsbody>[\s\S]*?(QML_ELEMENT|QML_NAMED_ELEMENT\((?<qml_name>\w+)\));[\s\S]*?enum\s*(?<enum_name>\w+)\s*\{(?<body>[\s\S]*?)\};[\s\S]*?)\}"#).unwrap(),
-			enum_class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*enum\s*(?<enum_name>\w+)\s*\{(?<body>[\s\S]*?)\};\s+Q_ENUM\(.+\);"#).unwrap(),
+			enum_ns_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*namespace (?<namespace>\w+)\s*\{(?<nsbody>[\s\S]*?(QML_ELEMENT|QML_NAMED_ELEMENT\((?<qml_name>\w+)\));[\s\S]*?enum\s*(?<enum_name>\w+)\s*(:\s*\w+\s*)?\{(?<body>[\s\S]*?)\};[\s\S]*?)\}"#).unwrap(),
+			enum_class_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*enum\s*(?<enum_name>\w+)\s*(:\s*\w+\s*)?\{(?<body>[\s\S]*?)\};\s+Q_ENUM\(.+\);"#).unwrap(),
 			enum_variant_regex: Regex::new(r#"(?<comment>(\s*\/\/\/.*\n)+)?\s*(?<name>\w+)\s*=\s*.+,"#).unwrap(),
 		}
 	}
