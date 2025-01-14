@@ -76,6 +76,11 @@
 			"module": null
 		},
 		{
+			"name": "size",
+			"cname": "QSize",
+			"module": null
+		},
+		{
 			"name": "QtObject",
 			"cname": "QObject",
 			"module": "qml.QtQml"
