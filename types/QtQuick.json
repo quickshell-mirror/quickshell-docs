@@ -81,6 +81,11 @@
 			"module": null
 		},
 		{
+			"name": "date",
+			"cname": "QDateTime",
+			"module": null
+		},
+		{
 			"name": "QtObject",
 			"cname": "QObject",
 			"module": "qml.QtQml"
