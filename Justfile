@@ -1,5 +1,5 @@
 typegen_bin := env_var_or_default('TYPEGEN', './typegen/target/debug/typegen')
-src_path := env_var_or_default('SRC_PATH', '../src')
+src_path := env_var_or_default('SRC_PATH', '../quickshell/src')
 
 build_typegen := if typegen_bin == './typegen/target/debug/typegen' { "true" } else { "false" }
 
