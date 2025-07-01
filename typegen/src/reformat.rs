@@ -17,13 +17,13 @@ pub struct GfmQuoteBlocks {
 impl GfmQuoteBlocks {
 		pub fn new() -> Self {
 				Self {
-						callout_regex: Regex::new(r#">\s+\[!(?<type>\w+)]\s+(?=\w)"#).unwrap()
+						callout_regex: Regex::new(r#">\s+\[!(?<type>\w+)]\s+"#).unwrap()
 				}
 		}
 }
 
 impl ReformatPass for GfmQuoteBlocks {
-		fn reformat(&self, _: &Context, text: &mut String) {
+	fn reformat(&self, _: &Context, text: &mut String) {
 		*text = text.replace("> [!INFO]", "> [!NOTE]");
 		*text = self.callout_regex.replace_all(text, "> [!$type]\n> ").to_string();
 	}
