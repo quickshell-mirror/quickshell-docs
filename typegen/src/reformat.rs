@@ -11,28 +11,31 @@ pub trait ReformatPass {
 }
 
 pub struct GfmQuoteBlocks {
-		callout_regex: Regex,
+	callout_regex: Regex,
 }
 
 impl GfmQuoteBlocks {
-		pub fn new() -> Self {
-				Self {
-						callout_regex: Regex::new(r#">\s+\[!(?<type>\w+)]\s+"#).unwrap()
-				}
+	pub fn new() -> Self {
+		Self {
+			callout_regex: Regex::new(r#">\s+\[!(?<type>\w+)]\s+"#).unwrap(),
 		}
+	}
 }
 
 impl ReformatPass for GfmQuoteBlocks {
 	fn reformat(&self, _: &Context, text: &mut String) {
 		*text = text.replace("> [!INFO]", "> [!NOTE]");
-		*text = self.callout_regex.replace_all(text, "> [!$type]\n> ").to_string();
+		*text = self
+			.callout_regex
+			.replace_all(text, "> [!$type]\n> ")
+			.to_string();
 	}
 }
 
 pub struct TypeLinks;
 
 impl ReformatPass for TypeLinks {
-	fn reformat(&self ,context: &Context, text: &mut String) {
+	fn reformat(&self, context: &Context, text: &mut String) {
 		let lines = text.lines().map(|line| {
 			if line.contains("@@") {
 				let mut src: &str = &*line;

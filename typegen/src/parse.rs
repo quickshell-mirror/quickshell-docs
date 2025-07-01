@@ -214,7 +214,10 @@ impl CppParser {
 						continue
 					}
 
-					let comment = macro_.name("comment").map(|m| m.as_str()).or(carryover.as_ref().map(|c| c.comment).flatten());
+					let comment = macro_
+						.name("comment")
+						.map(|m| m.as_str())
+						.or(carryover.as_ref().map(|c| c.comment).flatten());
 					let type_ = macro_.name("type").unwrap().as_str();
 					let args = macro_.name("args").map(|m| m.as_str());
 
@@ -243,13 +246,14 @@ impl CppParser {
 							"QML_UNCREATABLE" => uncreatable = true,
 							"QSDOC_CREATABLE" => force_creatable = true,
 							"QSDOC_TYPE_OVERRIDE" => {
-									let type_override = args.ok_or_else(|| anyhow!("expected param for QSDOC_GENERIC"))?;
+								let type_override = args
+									.ok_or_else(|| anyhow!("expected param for QSDOC_GENERIC"))?;
 
-									carryover = Some(Carryover {
-											type_override: Some(type_override),
-											comment,
-									});
-							}
+								carryover = Some(Carryover {
+									type_override: Some(type_override),
+									comment,
+								});
+							},
 							"Q_PROPERTY" | "QSDOC_PROPERTY_OVERRIDE" => {
 								let prop =
 									self.property_regex
@@ -268,7 +272,13 @@ impl CppParser {
 								}
 
 								properties.push(Property {
-									type_: Cow::Borrowed(this_carryover.as_ref().map(|c| c.type_override).flatten().unwrap_or_else(|| prop.name("type").unwrap().as_str())),
+									type_: Cow::Borrowed(
+										this_carryover
+											.as_ref()
+											.map(|c| c.type_override)
+											.flatten()
+											.unwrap_or_else(|| prop.name("type").unwrap().as_str()),
+									),
 									name: prop.name("name").unwrap().as_str(),
 									comment: comment.map(|v| Comment::new(v, ctx.module)),
 									readable: read || member,

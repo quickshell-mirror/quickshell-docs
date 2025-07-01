@@ -110,7 +110,14 @@ pub fn resolve_types(
 					typespec
 						.enums
 						.iter()
-						.find(|type_| type_.cname.as_ref().map(|v| v as &str).map(|v| !v.is_empty() && ctype.ends_with(v) ).unwrap_or(false))
+						.find(|type_| {
+							type_
+								.cname
+								.as_ref()
+								.map(|v| v as &str)
+								.map(|v| !v.is_empty() && ctype.ends_with(v))
+								.unwrap_or(false)
+						})
 						.map(|type_| (&type_.module, &type_.name))
 				});
 

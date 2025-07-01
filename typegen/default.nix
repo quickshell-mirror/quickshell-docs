@@ -6,5 +6,5 @@
   version = "0.1.0";
 
   src = nix-gitignore.gitignoreSource [] ./.;
-  cargoHash = "sha256-bOOYzCLIyze6DbtMDupSuRFgJAKjbcFXrZw7vclorYQ=";
+  cargoHash = "sha256-vLj/EKfBzlfRdmVr114evJS+Owzz4PdARNGBE3aPUo4=";
 }
